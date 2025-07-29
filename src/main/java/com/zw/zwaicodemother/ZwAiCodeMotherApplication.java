@@ -6,8 +6,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class ZwAiCodeMotherApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(ZwAiCodeMotherApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(ZwAiCodeMotherApplication.class, args);
+    }
 
 }
