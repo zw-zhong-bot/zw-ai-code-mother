@@ -4,6 +4,8 @@ package com.zw.zwaicodemother.common;
 import com.zw.zwaicodemother.exception.ErrorCode;
 import lombok.Data;
 
+
+
 import java.io.Serializable;
 
 /*
@@ -31,5 +33,6 @@ public class BaseResponse<T> implements Serializable {
     public BaseResponse(ErrorCode errorCode) {
         this(errorCode.getCode(), null, errorCode.getMessage());
     }
+
 }
 
