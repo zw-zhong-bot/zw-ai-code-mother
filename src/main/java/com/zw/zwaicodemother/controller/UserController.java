@@ -56,7 +56,7 @@ public class UserController {
      * @param request          请求对象
      * @return 脱敏后的用户登录信息
      */
-    @PostMapping("'/login")
+    @PostMapping("/login")
     public BaseResponse<LoginUserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest,
                                                HttpServletRequest request) {
         ThrowUtils.throwIf(userLoginRequest  == null , ErrorCode.PARAMS_ERROR);
@@ -106,7 +106,7 @@ public class UserController {
     *
     * 根据id获取用户（仅管理员）
     * */
-    @GetMapping("'/get")
+    @GetMapping("/get")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public  BaseResponse<User> getUserById(long id){
         ThrowUtils.throwIf(id<=0 , ErrorCode.PARAMS_ERROR);
