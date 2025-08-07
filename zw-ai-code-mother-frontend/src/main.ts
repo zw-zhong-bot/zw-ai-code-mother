@@ -1,5 +1,9 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
+import "@/access"
+
+//引入用户权限控制
+//import '@/access.ts'
 
 import App from './App.vue'
 import router from './router'

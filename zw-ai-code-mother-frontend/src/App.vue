@@ -1,13 +1,7 @@
 <script setup lang="ts">
 import BasicLayout from '@/layouts/BasicLayout.vue'
 
-//远程获取数据
-/*import {useLoginUserStore } from '@/stores/loginUser.ts'
 
-const loginUserStore = useLoginUserStore()
-loginUserStore.fetchLoginUser()*/
-
-//
 
 </script>
 

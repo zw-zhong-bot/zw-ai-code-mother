@@ -23,10 +23,20 @@
       <a-col>
         <div class="user-login-status">
           <div v-if="loginUserStore.loginUser.id">
-            <a-space>
-              <a-avatar :src="loginUserStore.loginUser.userAvatar" />
-              {{ loginUserStore.loginUser.userName ?? '无名' }}
-            </a-space>
+            <a-dropdown>
+              <a-space>
+                <a-avatar :src="loginUserStore.loginUser.userAvatar" />
+                {{ loginUserStore.loginUser.userName ?? '无名' }}
+              </a-space>
+              <template #overlay>
+                <a-menu>
+                  <a-menu-item @click="doLogout">
+                    <logoutOutlined />
+                    退出登录
+                  </a-menu-item>
+                </a-menu>
+              </template>
+            </a-dropdown>
           </div>
           <div v-else>
             <a-button type="primary" href="/user/login">登录</a-button>
@@ -48,7 +58,11 @@ import { LogoutOutlined, HomeOutlined } from '@ant-design/icons-vue'
 
 const loginUserStore = useLoginUserStore()
 // HTML 展示数据
-{{ JSON.stringify(loginUserStore.loginUser) }}
+{
+  {
+    JSON.stringify(loginUserStore.loginUser)
+  }
+}
 
 const router = useRouter()
 // 当前选中菜单
@@ -69,7 +83,7 @@ const originItems = [
   {
     key: '/guabn',
     label: '关于',
-    title: '关于'
+    title: '关于',
   },
   {
     key: '/admin/userManage',
@@ -83,7 +97,14 @@ const originItems = [
   },
   {
     key: 'others',
-    label: h('a', { href: 'https://github.com/zw-zhong-bot/zw-ai-code-mother', target: '_blank' }, '项目源码'),
+    label: h(
+      'a',
+      {
+        href: 'https://github.com/zw-zhong-bot/zw-ai-code-mother',
+        target: '_blank',
+      },
+      '项目源码',
+    ),
     title: '项目源码',
   },
 ]
@@ -101,6 +122,15 @@ const filterMenus = (menus = [] as MenuProps['items']) => {
     return true
   })
 }
+/*const items =menus.filter((menu) =>{
+  //todo 需要自己实现 menu 到路由 item 的转化
+  const item = menuToRouteItem(menu);
+  if (item.meta?.hideInMenu) {
+    return false;
+  }
+  //根据权限过滤菜单，有权限则返回 true，则保留该菜单
+  return checkAccess(loginUserStore.loginUser, item.meta?.access as string);
+})*/
 
 // 展示在菜单的路由数组
 const menuItems = computed<MenuProps['items']>(() => filterMenus(originItems))
