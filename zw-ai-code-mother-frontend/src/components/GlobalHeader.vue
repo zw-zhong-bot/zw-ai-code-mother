@@ -24,12 +24,16 @@
         <div class="user-login-status">
           <div v-if="loginUserStore.loginUser.id">
             <a-dropdown>
-              <a-space>
+              <a-space @click="goToUserPage" style="cursor: pointer">
                 <a-avatar :src="loginUserStore.loginUser.userAvatar" />
                 {{ loginUserStore.loginUser.userName ?? '无名' }}
               </a-space>
               <template #overlay>
                 <a-menu>
+                  <a-menu-item @click="goToUserUpdate">
+                    <userOutlined />
+                    修改用户信息
+                  </a-menu-item>
                   <a-menu-item @click="doLogout">
                     <logoutOutlined />
                     退出登录
@@ -54,7 +58,7 @@ import { type MenuProps, message } from 'ant-design-vue'
 import { userLogout } from '@/api/userController.ts'
 // JS 中引入 Store
 import { useLoginUserStore } from '@/stores/loginUser.ts'
-import { LogoutOutlined, HomeOutlined } from '@ant-design/icons-vue'
+import { LogoutOutlined, HomeOutlined, UserOutlined } from '@ant-design/icons-vue'
 
 const loginUserStore = useLoginUserStore()
 // HTML 展示数据
@@ -68,7 +72,7 @@ const router = useRouter()
 // 当前选中菜单
 const selectedKeys = ref<string[]>(['/'])
 // 监听路由变化，更新当前选中菜单
-router.afterEach((to, from, next) => {
+router.afterEach((to) => {
   selectedKeys.value = [to.path]
 })
 
@@ -143,6 +147,16 @@ const handleMenuClick: MenuProps['onClick'] = (e) => {
   if (key.startsWith('/')) {
     router.push(key)
   }
+}
+
+// 跳转到用户信息页面
+const goToUserPage = () => {
+  router.push('/user')
+}
+
+// 跳转到用户信息修改页面
+const goToUserUpdate = () => {
+  router.push('/user/update')
 }
 
 // 退出登录

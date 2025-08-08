@@ -2,6 +2,7 @@ import router from '@/router'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import ACCESS_ENUM from './accessEnum'
 import checkAccess from './checkAccess'
+import { message } from 'ant-design-vue'
 
 
 router.beforeEach(async (to, from, next) => {
@@ -19,11 +20,13 @@ router.beforeEach(async (to, from, next) => {
   if (needAccess !== ACCESS_ENUM.NOT_LOGIN) {
     // 如果没登陆，跳转到登录页面
     if (!loginUser || !loginUser.userRole || loginUser.userRole === ACCESS_ENUM.NOT_LOGIN) {
+      message.error('请先登录')
       next(`/user/login?redirect=${to.fullPath}`)
       return
     }
     // 如果已经登陆了，但是权限不足，那么跳转到无权限页面
     if (!checkAccess(loginUser, needAccess)) {
+      message.error('没有权限')
       next('/noAuth')
       return
     }
