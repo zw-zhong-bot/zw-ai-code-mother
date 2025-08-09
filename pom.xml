@@ -98,6 +98,24 @@
             <artifactId>HikariCP</artifactId>
             <version>4.0.3</version>
         </dependency>
+<!--        添加 OpenAI 大模型的依赖-->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j</artifactId>
+            <version>1.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-open-ai-spring-boot-starter</artifactId>
+            <version>1.1.0-beta7</version>
+        </dependency>
+<!--        流式返回的过程中 拼接 AI 的返回结果。等全部输出完成后，再对拼接结果进行解析和保存。-->
+<!--        LangChain4j + Reactor-->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-reactor</artifactId>
+            <version>1.1.0-beta7</version>
+        </dependency>
 
     </dependencies>
 

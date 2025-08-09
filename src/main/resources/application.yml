@@ -1,12 +1,16 @@
 spring:
   application:
     name: zw-ai-code-mother-backend
+#    激活本地环境
+  profiles:
+      active: local
   #MySQL
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/zw_ai_code__mother
     username: root
     password: root
+
 server:
   port: 8123
   servlet:
@@ -22,3 +26,6 @@ knife4j:
   setting:
     language: zh_cn
 
+# 可选配置：如果希望yml也能引用这个变量
+custom:
+  api-key: ${DEEPSEEK_API_KEY:NOT_SET_IN_YAML}

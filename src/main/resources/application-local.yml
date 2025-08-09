@@ -1,0 +1,21 @@
+# AI
+langchain4j:
+  open-ai:
+    chat-model:
+      base-url: https://api.deepseek.com/v1
+      api-key: ${DEEPSEEK_API_KEY:NOT_SET_IN_YAML} # 建议使用环境变量
+      model-name: deepseek-chat
+      log-requests: true
+      log-responses: true
+      max-tokens: 8192
+      strict-json-schema: true
+      response-format: json_object
+      timeout: 120s  # 增加超时设置
+      temperature: 0.7
+    streaming-chat-model: # 新增流式配置
+      enabled: true  # 默认关闭
+      base-url: https://api.deepseek.com/v1
+      api-key: ${DEEPSEEK_API_KEY:NOT_SET_IN_YAML}
+      model-name: deepseek-chat
+      temperature: 0.7
+      timeout: 120s
