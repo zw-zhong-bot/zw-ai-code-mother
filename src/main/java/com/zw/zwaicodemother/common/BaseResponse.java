@@ -4,8 +4,6 @@ package com.zw.zwaicodemother.common;
 import com.zw.zwaicodemother.exception.ErrorCode;
 import lombok.Data;
 
-
-
 import java.io.Serializable;
 
 /*

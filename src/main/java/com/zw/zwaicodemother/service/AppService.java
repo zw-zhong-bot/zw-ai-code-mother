@@ -1,0 +1,52 @@
+package com.zw.zwaicodemother.service;
+
+import com.mybatisflex.core.paginate.Page;
+import com.mybatisflex.core.query.QueryWrapper;
+import com.mybatisflex.core.service.IService;
+import com.zw.zwaicodemother.model.dto.app.AppQueryRequest;
+import com.zw.zwaicodemother.model.entity.App;
+import com.zw.zwaicodemother.model.vo.AppVO;
+
+import java.util.List;
+
+/**
+ *  服务层。
+ *
+ * @author <a href="https://github.com/zw-zhong-bot">程序员zw</a>
+ */
+public interface AppService extends IService<App> {
+
+    /**
+     * 获取应用视图
+     *
+     * @param app 应用
+     * @return 应用视图
+     */
+    AppVO getAppVO(App app);
+
+    /**
+     * 获取应用视图列表
+     *
+     * @param appList 应用列表
+     * @return 应用视图列表
+     */
+    List<AppVO> getAppVOList(List<App> appList);
+
+    /**
+     * 获取查询条件
+     *
+     * @param appQueryRequest 应用查询请求
+     * @return 查询条件
+     */
+    QueryWrapper getQueryWrapper(AppQueryRequest appQueryRequest);
+
+    /**
+     * 分页获取精选应用列表
+     *
+     * @param appQueryRequest 应用查询请求
+     * @return 精选应用分页
+     */
+    Page<AppVO> getFeaturedAppPage(AppQueryRequest appQueryRequest);
+
+
+}

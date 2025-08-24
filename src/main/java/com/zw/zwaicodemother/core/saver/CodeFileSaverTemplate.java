@@ -4,7 +4,6 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import com.zw.zwaicodemother.ai.enums.CodeGenTypeEnum;
-import com.zw.zwaicodemother.ai.model.HtmlCodeResult;
 import com.zw.zwaicodemother.exception.BusinessException;
 import com.zw.zwaicodemother.exception.ErrorCode;
 

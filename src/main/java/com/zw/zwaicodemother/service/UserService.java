@@ -1,6 +1,5 @@
 package com.zw.zwaicodemother.service;
 
-import cn.hutool.core.bean.BeanUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
 import com.zw.zwaicodemother.model.dto.user.UserQueryRequest;
