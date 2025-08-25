@@ -5,7 +5,9 @@ import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
 import com.zw.zwaicodemother.model.dto.app.AppQueryRequest;
 import com.zw.zwaicodemother.model.entity.App;
+import com.zw.zwaicodemother.model.entity.User;
 import com.zw.zwaicodemother.model.vo.AppVO;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -47,6 +49,18 @@ public interface AppService extends IService<App> {
      * @return 精选应用分页
      */
     Page<AppVO> getFeaturedAppPage(AppQueryRequest appQueryRequest);
+
+
+    Flux<String> chatToGenCode(Long appId, String message, User loginUser);
+
+    /**
+     * 应用部署
+     *
+     * @param appId 应用 ID
+     * @param loginUser 登录用户
+     * @return 可访问的部署地址
+     */
+    public String deployApp(Long appId, User loginUser);
 
 
 }
