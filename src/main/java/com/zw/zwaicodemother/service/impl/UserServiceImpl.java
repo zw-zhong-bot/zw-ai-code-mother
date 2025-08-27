@@ -17,6 +17,13 @@ import com.zw.zwaicodemother.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.UUID;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -192,5 +199,141 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
             return new ArrayList<>();
         }
         return userList.stream().map(this::getUserVo).collect(Collectors.toList());
+    }
+
+    @Override
+    public String uploadUserAvatar(MultipartFile file, Long userId) {
+        // 参数校验
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "头像文件不能为空");
+        }
+        if (userId == null || userId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户ID不能为空");
+        }
+
+        // 检查用户是否存在
+        User user = this.getById(userId);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "用户不存在");
+        }
+
+        // 校验文件类型
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null || originalFilename.isEmpty()) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "文件名不能为空");
+        }
+
+        String fileExtension = getFileExtension(originalFilename);
+        if (!isValidImageExtension(fileExtension)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "只支持jpg、jpeg、png、gif格式的图片");
+        }
+
+        // 校验文件大小（限制为5MB）
+        if (file.getSize() > 5 * 1024 * 1024) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "头像文件大小不能超过5MB");
+        }
+
+        try {
+            // 创建存储目录
+            String uploadDir = "src/main/resources/static/ping";
+            Path uploadPath = Paths.get(uploadDir);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+
+            // 生成唯一文件名
+            String fileName = generateUniqueFileName(fileExtension);
+            Path filePath = uploadPath.resolve(fileName);
+
+            // 保存文件
+            Files.copy(file.getInputStream(), filePath);
+
+            // 生成访问URL
+            String avatarUrl = "/api/static/ping/" + fileName;
+
+            // 更新用户头像信息
+            user.setUserAvatar(avatarUrl);
+            this.updateById(user);
+
+            return avatarUrl;
+        } catch (IOException e) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "头像上传失败：" + e.getMessage());
+        }
+    }
+
+    @Override
+    public boolean deleteUserAvatar(Long userId) {
+        if (userId == null || userId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户ID不能为空");
+        }
+
+        User user = this.getById(userId);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "用户不存在");
+        }
+
+        String currentAvatar = user.getUserAvatar();
+        if (StrUtil.isBlank(currentAvatar)) {
+            return true; // 没有头像，直接返回成功
+        }
+
+        try {
+            // 删除文件
+            String fileName = extractFileNameFromUrl(currentAvatar);
+            if (StrUtil.isNotBlank(fileName)) {
+                Path filePath = Paths.get("src/main/resources/static/ping", fileName);
+                if (Files.exists(filePath)) {
+                    Files.delete(filePath);
+                }
+            }
+
+            // 清空用户头像字段
+            user.setUserAvatar(null);
+            this.updateById(user);
+
+            return true;
+        } catch (IOException e) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "删除头像失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取文件扩展名
+     */
+    private String getFileExtension(String fileName) {
+        int lastDotIndex = fileName.lastIndexOf('.');
+        if (lastDotIndex > 0) {
+            return fileName.substring(lastDotIndex + 1).toLowerCase();
+        }
+        return "";
+    }
+
+    /**
+     * 校验是否为有效的图片扩展名
+     */
+    private boolean isValidImageExtension(String extension) {
+        return "jpg".equals(extension) || "jpeg".equals(extension) || 
+               "png".equals(extension) || "gif".equals(extension);
+    }
+
+    /**
+     * 生成唯一文件名
+     */
+    private String generateUniqueFileName(String extension) {
+        return "avatar_" + UUID.randomUUID().toString().replace("-", "") + "." + extension;
+    }
+
+    /**
+     * 从URL中提取文件名
+     */
+    private String extractFileNameFromUrl(String url) {
+        if (StrUtil.isBlank(url)) {
+            return null;
+        }
+        int lastSlashIndex = url.lastIndexOf('/');
+        if (lastSlashIndex >= 0 && lastSlashIndex < url.length() - 1) {
+            return url.substring(lastSlashIndex + 1);
+        }
+        return null;
     }
 }

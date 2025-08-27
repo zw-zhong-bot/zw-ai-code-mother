@@ -4,10 +4,10 @@ import cn.hutool.core.util.ObjUtil;
 import lombok.Getter;
 /*
 *
-* 对于用户角色这样值的数量有限的؜、
+* 对于用户角色这样值的数量有限的、
 * 可枚举的字段，
 * 最好定义一个枚举类，
-* 便于؜在项目中获取值、
+* 便于在项目中获取值、
 * 减少枚举值输入错误的情况。*/
 @Getter
 public enum UserRoleEnum {
@@ -24,7 +24,7 @@ public enum UserRoleEnum {
     }
     /*
     * 根据value获取枚举2
-    * getEnumByVa؜lue 是通过 value 找到具体的枚؜举对象
+    * getEnumByValue 是通过 value 找到具体的枚举对象
     * */
     public static UserRoleEnum getEnumByValue(String value) {
         if (ObjUtil.isEmpty(value)){

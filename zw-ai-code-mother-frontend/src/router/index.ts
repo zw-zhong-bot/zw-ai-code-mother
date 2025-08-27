@@ -1,5 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '@/pages/HomePage.vue'
+import AppChatPage from '@/pages/app/AppChatPage.vue'
+import AppEditPage from '@/pages/app/AppEditPage.vue'
+import AppAdminManagePage from '@/pages/admin/AppManagePage.vue'
+import AppDetailPage from '@/pages/app/AppDetailPage.vue'
 import UserLoginPage from '@/pages/user/UserLoginPage.vue'
 import UserRegisterPage from '@/pages/user/UserRegisterPage.vue'
 import UserPage from '@/pages/user/UserPage.vue'
@@ -16,6 +20,30 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView,
+    },
+    {
+      path: '/app/chat/:id',
+      name: '应用生成对话',
+      component: AppChatPage,
+      meta: { access: ACCESS_ENUM.USER },
+    },
+    {
+      path: '/app/detail/:id',
+      name: '应用详情',
+      component: AppDetailPage,
+      meta: { access: ACCESS_ENUM.USER },
+    },
+    {
+      path: '/app/edit/:id',
+      name: '应用信息修改',
+      component: AppEditPage,
+      meta: { access: ACCESS_ENUM.USER },
+    },
+    {
+      path: '/admin/appManage',
+      name: '应用管理',
+      component: AppAdminManagePage,
+      meta: { access: ACCESS_ENUM.ADMIN },
     },
     {
       path: '/user',

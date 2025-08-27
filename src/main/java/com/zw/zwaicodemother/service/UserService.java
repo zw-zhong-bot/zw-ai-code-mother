@@ -7,6 +7,7 @@ import com.zw.zwaicodemother.model.entity.User;
 import com.zw.zwaicodemother.model.vo.LoginUserVO;
 import com.zw.zwaicodemother.model.vo.UserVO;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -88,5 +89,22 @@ public interface UserService extends IService<User> {
      * @return 加密后的用户密码
      */
     String getEncryptPassword(String userPassword);
+
+    /**
+     * 上传用户头像
+     *
+     * @param file 头像文件
+     * @param userId 用户ID
+     * @return 头像访问URL
+     */
+    String uploadUserAvatar(MultipartFile file, Long userId);
+
+    /**
+     * 删除用户头像
+     *
+     * @param userId 用户ID
+     * @return 是否删除成功
+     */
+    boolean deleteUserAvatar(Long userId);
 
 }

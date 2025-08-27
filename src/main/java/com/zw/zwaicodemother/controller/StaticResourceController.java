@@ -26,6 +26,29 @@ public class StaticResourceController {
     private static final String PREVIEW_ROOT_DIR = AppConstant.CODE_OUTPUT_ROOT_DIR;
 
     /**
+     * 提供头像文件访问
+     * 访问格式：http://localhost:8123/api/static/ping/{fileName}
+     */
+    @GetMapping("/ping/{fileName:.+}")
+    public ResponseEntity<Resource> serveAvatarFile(@PathVariable String fileName) {
+        try {
+            String filePath = "src/main/resources/static/ping/" + fileName;
+            File file = new File(filePath);
+            
+            if (!file.exists()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            Resource resource = new FileSystemResource(file);
+            return ResponseEntity.ok()
+                    .header("Content-Type", getImageContentType(fileName))
+                    .body(resource);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
      * 提供静态资源访问，支持目录重定向
      * 访问格式：http://localhost:8123/api/static/{deployKey}[/{fileName}]
      */
@@ -73,6 +96,16 @@ public class StaticResourceController {
         if (filePath.endsWith(".js")) return "application/javascript; charset=UTF-8";
         if (filePath.endsWith(".png")) return "image/png";
         if (filePath.endsWith(".jpg")) return "image/jpeg";
+        return "application/octet-stream";
+    }
+
+    /**
+     * 根据文件名返回图片的 Content-Type
+     */
+    private String getImageContentType(String fileName) {
+        if (fileName.endsWith(".png")) return "image/png";
+        if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) return "image/jpeg";
+        if (fileName.endsWith(".gif")) return "image/gif";
         return "application/octet-stream";
     }
 }

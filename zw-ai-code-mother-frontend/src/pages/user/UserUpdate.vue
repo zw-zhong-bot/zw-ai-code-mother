@@ -18,9 +18,15 @@
             class="avatar-uploader"
             :show-upload-list="false"
             :before-upload="beforeUpload"
+            :custom-request="customUpload"
             @change="handleAvatarChange"
           >
-            <img v-if="form.userAvatar" :src="form.userAvatar" alt="avatar" style="width: 100%" />
+            <img
+              v-if="form.userAvatar"
+              :src="getFullAvatarUrl(form.userAvatar)"
+              alt="avatar"
+              style="width: 100%"
+            />
             <div v-else>
               <plus-outlined />
               <div style="margin-top: 8px">上传</div>
@@ -57,11 +63,18 @@ import { message } from 'ant-design-vue'
 import type { FormInstance } from 'ant-design-vue'
 import { PlusOutlined } from '@ant-design/icons-vue'
 import type { UploadChangeParam } from 'ant-design-vue'
-import { updateUser, getLoginUser } from '@/api/userController.ts'
+import { updateUser, getLoginUser, uploadUserAvatar } from '@/api/userController.ts'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
+
+// 拼接完整的头像URL
+const getFullAvatarUrl = (avatarPath: string): string => {
+  if (!avatarPath) return ''
+  if (avatarPath.startsWith('http')) return avatarPath
+  return `http://localhost:8123${avatarPath}`
+}
 
 const formRef = ref<FormInstance>()
 const fileList = ref([])
@@ -93,15 +106,61 @@ const beforeUpload = (file: File) => {
   return isJpgOrPng && isLt2M
 }
 
+// 自定义上传
+const customUpload = async (options: {
+  file: File
+  onSuccess: (data: string) => void
+  onError: (error: Error) => void
+}) => {
+  const { file, onSuccess, onError } = options
+
+  try {
+    console.log('开始上传头像，文件信息:', {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+    })
+
+    // 创建 FormData
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('userId', String(form.id))
+
+    // 调试：检查 FormData 内容
+    for (const [key, value] of formData.entries()) {
+      console.log('FormData 内容:', key, value)
+    }
+
+    // 调用上传API
+    const res = await uploadUserAvatar(formData)
+
+    console.log('上传响应:', res.data)
+
+    if (res.data.code === 0 && res.data.data) {
+      // 拼接完整的头像URL
+      const fullAvatarUrl = getFullAvatarUrl(res.data.data)
+      form.userAvatar = fullAvatarUrl
+      onSuccess(fullAvatarUrl)
+      message.success('头像上传成功')
+    } else {
+      onError(new Error(res.data.message))
+      message.error('头像上传失败: ' + res.data.message)
+    }
+  } catch (error) {
+    console.error('头像上传失败:', error)
+    onError(error instanceof Error ? error : new Error('上传失败'))
+    message.error('头像上传失败')
+  }
+}
+
 // 处理头像上传变化
 const handleAvatarChange = (info: UploadChangeParam) => {
   if (info.file.status === 'uploading') {
     return
   }
   if (info.file.status === 'done') {
-    if (info.file.originFileObj) {
-      form.userAvatar = info.file.response?.data || URL.createObjectURL(info.file.originFileObj)
-    }
+    // 上传成功，头像URL已经在customUpload中设置
+    console.log('头像上传完成')
   }
 }
 

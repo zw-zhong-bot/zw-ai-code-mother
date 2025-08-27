@@ -25,7 +25,7 @@
           <div v-if="loginUserStore.loginUser.id">
             <a-dropdown>
               <a-space @click="goToUserPage" style="cursor: pointer">
-                <a-avatar :src="loginUserStore.loginUser.userAvatar" />
+                <a-avatar :src="userAvatarUrl" :alt="loginUserStore.loginUser.userName" />
                 {{ loginUserStore.loginUser.userName ?? '无名' }}
               </a-space>
               <template #overlay>
@@ -61,6 +61,23 @@ import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { LogoutOutlined, HomeOutlined, UserOutlined } from '@ant-design/icons-vue'
 
 const loginUserStore = useLoginUserStore()
+
+// 拼接完整的头像URL
+const getFullAvatarUrl = (avatarPath: string): string => {
+  if (!avatarPath) return ''
+  if (avatarPath.startsWith('http')) return avatarPath
+  return `http://localhost:8123${avatarPath}`
+}
+
+// 计算用户头像URL
+const userAvatarUrl = computed(() => {
+  const avatar = loginUserStore.loginUser.userAvatar
+  if (!avatar) {
+    return `https://picsum.photos/32/32?random=user`
+  }
+  return getFullAvatarUrl(avatar)
+})
+
 // HTML 展示数据
 {
   {

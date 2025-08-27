@@ -25,7 +25,11 @@
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.dataIndex === 'userAvatar'">
-          <a-image :src="record.userAvatar" :width="120" />
+          <a-avatar
+            :src="avatarCache.get(record.id) || `https://picsum.photos/120/120?random=${record.id}`"
+            :size="60"
+            :alt="record.userName"
+          />
         </template>
         <template v-else-if="column.dataIndex === 'userRole'">
           <div v-if="record.userRole === 'admin'">
@@ -72,6 +76,7 @@
             class="avatar-uploader"
             :show-upload-list="false"
             :before-upload="beforeUpload"
+            :custom-request="customUpload"
             @change="handleAvatarChange"
           >
             <img
@@ -81,7 +86,11 @@
               style="width: 100%"
             />
             <div v-else>
-              <plus-outlined />
+              <img
+                :src="`https://picsum.photos/100/100?random=create`"
+                alt="默认头像"
+                style="width: 100%; height: 100%; object-fit: cover"
+              />
               <div style="margin-top: 8px">上传</div>
             </div>
           </a-upload>
@@ -127,6 +136,7 @@
             class="avatar-uploader"
             :show-upload-list="false"
             :before-upload="beforeUpload"
+            :custom-request="customUpdateUpload"
             @change="handleUpdateAvatarChange"
           >
             <img
@@ -136,7 +146,11 @@
               style="width: 100%"
             />
             <div v-else>
-              <plus-outlined />
+              <img
+                :src="`https://picsum.photos/100/100?random=update`"
+                alt="默认头像"
+                style="width: 100%; height: 100%; object-fit: cover"
+              />
               <div style="margin-top: 8px">上传</div>
             </div>
           </a-upload>
@@ -160,11 +174,18 @@
 </template>
 <script lang="ts" setup>
 import { computed, onMounted, reactive, ref } from 'vue'
-import { deleteUser, listUserVoByPage, addUser, updateUser } from '@/api/userController.ts'
+import {
+  deleteUser,
+  listUserVoByPage,
+  addUser,
+  updateUser,
+  uploadUserAvatar,
+  getUserAvatar,
+} from '@/api/userController.ts'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import type { FormInstance } from 'ant-design-vue'
-import { PlusOutlined } from '@ant-design/icons-vue'
+
 import type { UploadChangeParam } from 'ant-design-vue'
 
 const columns = [
@@ -249,6 +270,39 @@ const updateFormRules = {
   userRole: [{ required: true, message: '请选择用户角色', trigger: 'change' }],
 }
 
+// 头像缓存
+const avatarCache = ref<Map<number, string>>(new Map())
+
+// 拼接完整的头像URL
+const getFullAvatarUrl = (avatarPath: string): string => {
+  if (!avatarPath) return ''
+  if (avatarPath.startsWith('http')) return avatarPath
+  return `http://localhost:8123${avatarPath}`
+}
+
+// 获取用户头像URL
+const getAvatarUrl = async (userId: number): Promise<string> => {
+  // 如果缓存中有，直接返回
+  if (avatarCache.value.has(userId)) {
+    return avatarCache.value.get(userId)!
+  }
+
+  try {
+    const res = await getUserAvatar({ userId })
+    if (res.data.code === 0 && res.data.data) {
+      // 拼接完整的头像URL
+      const fullAvatarUrl = getFullAvatarUrl(res.data.data)
+      // 缓存头像URL
+      avatarCache.value.set(userId, fullAvatarUrl)
+      return fullAvatarUrl
+    }
+  } catch (error) {
+    console.error('获取用户头像失败:', error)
+  }
+
+  return ''
+}
+
 // 显示创建用户对话框
 const showCreateModal = () => {
   createModalVisible.value = true
@@ -274,6 +328,12 @@ const handleCreateUser = async () => {
       createModalVisible.value = false
       // 刷新数据
       fetchData()
+      // 如果创建的用户有头像，添加到缓存中
+      if (res.data.data && createForm.userAvatar) {
+        // 确保头像URL是完整的
+        const fullAvatarUrl = getFullAvatarUrl(createForm.userAvatar)
+        avatarCache.value.set(res.data.data, fullAvatarUrl)
+      }
     } else {
       message.error('创建用户失败: ' + res.data.message)
     }
@@ -298,18 +358,112 @@ const beforeUpload = (file: File) => {
   return isJpgOrPng && isLt2M
 }
 
+// 自定义上传函数 - 创建用户
+const customUpload = async (options: {
+  file: File
+  onSuccess: (data: string) => void
+  onError: (error: Error) => void
+}) => {
+  const { file, onSuccess, onError } = options
+
+  try {
+    console.log('开始上传头像:', {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+    })
+
+    // 创建 FormData
+    const formData = new FormData()
+    formData.append('file', file)
+    // 注意：创建用户时还没有userId，这里暂时不传，后端可能需要特殊处理
+    // formData.append('userId', String(createForm.id))
+
+    // 调试：检查 FormData 内容
+    for (const [key, value] of formData.entries()) {
+      console.log('FormData 内容:', key, value)
+    }
+
+    // 调用上传API
+    const res = await uploadUserAvatar(formData)
+
+    console.log('上传响应:', res.data)
+
+    if (res.data.code === 0 && res.data.data) {
+      // 拼接完整的头像URL
+      const fullAvatarUrl = getFullAvatarUrl(res.data.data)
+      createForm.userAvatar = fullAvatarUrl
+      onSuccess(fullAvatarUrl)
+      message.success('头像上传成功')
+    } else {
+      onError(new Error(res.data.message))
+      message.error('头像上传失败: ' + res.data.message)
+    }
+  } catch (error) {
+    console.error('头像上传失败:', error)
+    onError(error instanceof Error ? error : new Error('上传失败'))
+    message.error('头像上传失败')
+  }
+}
+
+// 自定义上传函数 - 更新用户
+const customUpdateUpload = async (options: {
+  file: File
+  onSuccess: (data: string) => void
+  onError: (error: Error) => void
+}) => {
+  const { file, onSuccess, onError } = options
+
+  try {
+    console.log('开始上传头像:', {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+    })
+
+    // 创建 FormData
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('userId', String(updateForm.id))
+
+    // 调试：检查 FormData 内容
+    for (const [key, value] of formData.entries()) {
+      console.log('FormData 内容:', key, value)
+    }
+
+    // 调用上传API
+    const res = await uploadUserAvatar(formData)
+
+    console.log('上传响应:', res.data)
+
+    if (res.data.code === 0 && res.data.data) {
+      // 拼接完整的头像URL
+      const fullAvatarUrl = getFullAvatarUrl(res.data.data)
+      updateForm.userAvatar = fullAvatarUrl
+      // 更新头像缓存
+      if (updateForm.id) {
+        avatarCache.value.set(updateForm.id, fullAvatarUrl)
+      }
+      onSuccess(fullAvatarUrl)
+      message.success('头像上传成功')
+    } else {
+      onError(new Error(res.data.message))
+      message.error('头像上传失败: ' + res.data.message)
+    }
+  } catch (error) {
+    console.error('头像上传失败:', error)
+    onError(error instanceof Error ? error : new Error('上传失败'))
+    message.error('头像上传失败')
+  }
+}
+
 // 处理头像上传变化
 const handleAvatarChange = (info: UploadChangeParam) => {
   if (info.file.status === 'uploading') {
     return
   }
   if (info.file.status === 'done') {
-    // 这里假设后端返回的数据结构包含图片URL
-    // 实际使用时需要根据后端API调整
-    if (info.file.originFileObj) {
-      createForm.userAvatar =
-        info.file.response?.data || URL.createObjectURL(info.file.originFileObj)
-    }
+    console.log('头像上传完成')
   }
 }
 
@@ -342,10 +496,7 @@ const handleUpdateAvatarChange = (info: UploadChangeParam) => {
     return
   }
   if (info.file.status === 'done') {
-    if (info.file.originFileObj) {
-      updateForm.userAvatar =
-        info.file.response?.data || URL.createObjectURL(info.file.originFileObj)
-    }
+    console.log('头像上传完成')
   }
 }
 
@@ -388,6 +539,13 @@ const fetchData = async () => {
   if (res.data.data) {
     data.value = res.data.data.records ?? []
     total.value = res.data.data.totalRow ?? 0
+
+    // 获取所有用户的头像
+    for (const user of data.value) {
+      if (user.id) {
+        getAvatarUrl(user.id)
+      }
+    }
   } else {
     message.error('获取数据失败' + res.data.message)
   }

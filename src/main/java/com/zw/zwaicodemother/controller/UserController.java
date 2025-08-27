@@ -18,6 +18,7 @@ import com.zw.zwaicodemother.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -172,6 +173,61 @@ public class UserController {
         userVOPage.setRecords(userVOList);
         return ResultUtils.success(userVOPage);
 
+    }
+
+    /**
+     * 上传用户头像
+     *
+     * @param file 头像文件
+     * @param userId 用户ID
+     * @return 头像访问URL
+     */
+    @PostMapping("/upload/avatar")
+    public BaseResponse<String> uploadUserAvatar(@RequestParam(value = "file", required = false) MultipartFile file,
+                                                 @RequestParam(value = "userId", required = false) Long userId) {
+        // 检查请求是否为multipart请求
+        if (file == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请选择要上传的头像文件");
+        }
+        if (file.isEmpty()) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "头像文件不能为空");
+        }
+        if (userId == null || userId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户ID不能为空");
+        }
+        
+        String avatarUrl = userService.uploadUserAvatar(file, userId);
+        return ResultUtils.success(avatarUrl);
+    }
+
+    /**
+     * 删除用户头像
+     *
+     * @param userId 用户ID
+     * @return 删除结果
+     */
+    @PostMapping("/delete/avatar")
+    public BaseResponse<Boolean> deleteUserAvatar(@RequestParam("userId") Long userId) {
+        ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR);
+        
+        boolean result = userService.deleteUserAvatar(userId);
+        return ResultUtils.success(result);
+    }
+
+    /**
+     * 获取用户头像
+     *
+     * @param userId 用户ID
+     * @return 头像URL
+     */
+    @GetMapping("/avatar")
+    public BaseResponse<String> getUserAvatar(@RequestParam("userId") Long userId) {
+        ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR);
+        
+        User user = userService.getById(userId);
+        ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR);
+        
+        return ResultUtils.success(user.getUserAvatar());
     }
 
 }
