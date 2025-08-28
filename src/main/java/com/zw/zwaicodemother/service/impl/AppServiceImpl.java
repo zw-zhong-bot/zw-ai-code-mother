@@ -22,9 +22,11 @@ import com.zw.zwaicodemother.model.vo.AppVO;
 import com.zw.zwaicodemother.model.vo.UserVO;
 import com.zw.zwaicodemother.service.AppService;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -198,5 +200,69 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         }
 //        5.调用AI生成代码
         return aiCodeGeneratorFacade.generateAndSaveCodeStream(message,codeGenTypeEnum,appId);
+    }
+
+    @Override
+    public String uploadAppCover(Long appId, MultipartFile file, User loginUser) {
+        // 1.参数校验
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID不能为空");
+        ThrowUtils.throwIf(file == null || file.isEmpty(), ErrorCode.PARAMS_ERROR, "封面文件不能为空");
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
+        
+        // 2.查询应用信息
+        App app = this.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        
+        // 3.验证用户是否有权限上传封面，仅本人可以上传
+        if (!app.getUserId().equals(loginUser.getId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限上传该应用的封面");
+        }
+        
+        try {
+            // 4.创建封面存储目录
+            String coverDirPath = System.getProperty("user.dir") + "/src/main/resources/static/fengmian";
+            File coverDir = new File(coverDirPath);
+            if (!coverDir.exists()) {
+                coverDir.mkdirs();
+            }
+            
+            // 5.生成唯一文件名
+            String originalFilename = file.getOriginalFilename();
+            String fileExtension = FileUtil.getSuffix(originalFilename);
+            String fileName = "app_cover_" + appId + "_" + RandomUtil.randomString(8) + "." + fileExtension;
+            
+            // 6.保存文件
+            String filePath = coverDirPath + File.separator + fileName;
+            file.transferTo(new File(filePath));
+            
+            // 7.生成访问URL
+            String coverUrl = "/api/static/fengmian/" + fileName;
+            
+            // 8.更新应用封面信息
+            App updateApp = new App();
+            updateApp.setId(appId);
+            updateApp.setCover(coverUrl);
+            updateApp.setUpdateTime(LocalDateTime.now());
+            boolean updateResult = this.updateById(updateApp);
+            ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "更新应用封面信息失败");
+            
+            return coverUrl;
+        } catch (IOException e) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "封面上传失败：" + e.getMessage());
+        }
+    }
+    
+    @Override
+    public String getAppCover(Long appId, User loginUser) {
+        // 1.参数校验
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID不能为空");
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
+        
+        // 2.查询应用信息
+        App app = this.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        
+        // 3.获取封面URL，不使用默认封面
+        return app.getCover();
     }
 }

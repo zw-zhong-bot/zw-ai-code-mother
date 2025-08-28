@@ -22,8 +22,13 @@
         :customRender="
           ({ record }) =>
             h('img', {
-              src: record.cover || `https://picsum.photos/80/48?random=${record.id}`,
+              src: getAppCoverUrl(record.cover, record.id),
               style: 'width:80px;height:48px;object-fit:cover;border-radius:6px',
+              onerror: (event: Event) => {
+                const imgElement = event.target as HTMLImageElement
+                imgElement.src = getAppCoverUrl('', record.id)
+                console.warn(`应用ID ${record.id} 的封面图片加载失败，已切换到默认封面`)
+              }
             })
         "
       />
@@ -40,6 +45,7 @@ import { computed, h, onMounted, reactive, ref } from 'vue'
 import { listAppByPage, deleteApp, updateApp } from '@/api/appController.ts'
 import { message } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
+import { getAppCoverUrl } from '@/pages/app/appCoverUtils'
 
 const router = useRouter()
 const query = reactive<API.AppQueryRequest>({ pageNum: 1, pageSize: 10 })

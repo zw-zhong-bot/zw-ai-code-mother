@@ -30,6 +30,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -363,5 +364,52 @@ public class AppController {
         //调用服务部署应用
         String deployUrl= appService.deployApp(appId,loginUser);
         return ResultUtils.success(deployUrl);
+    }
+    
+    /**
+     * 上传应用封面
+     *
+     * @param file 封面文件
+     * @param appId 应用ID
+     * @param request 请求对象
+     * @return 封面访问URL
+     */
+    @PostMapping("/upload/cover")
+    public BaseResponse<String> uploadAppCover(@RequestParam("file") MultipartFile file,
+                                              @RequestParam("appId") Long appId,
+                                              HttpServletRequest request) {
+        // 参数校验
+        ThrowUtils.throwIf(file == null || file.isEmpty(), ErrorCode.PARAMS_ERROR, "封面文件不能为空");
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID不能为空");
+        
+        // 获取当前登录用户
+        User loginUser = userService.getLoginUser(request);
+        
+        // 调用服务上传封面
+        String coverUrl = appService.uploadAppCover(appId, file, loginUser);
+        
+        return ResultUtils.success(coverUrl);
+    }
+    
+    /**
+     * 获取应用封面
+     *
+     * @param appId 应用ID
+     * @param request 请求对象
+     * @return 封面访问URL
+     */
+    @GetMapping("/get/cover")
+    public BaseResponse<String> getAppCover(@RequestParam Long appId, HttpServletRequest request) {
+        // 参数校验
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID不能为空");
+        
+        // 获取当前登录用户
+        User loginUser = userService.getLoginUser(request);
+        
+        // 调用服务获取封面
+
+       String coverUrl = appService.getAppCover(appId, loginUser);
+        
+        return ResultUtils.success(coverUrl);
     }
 }

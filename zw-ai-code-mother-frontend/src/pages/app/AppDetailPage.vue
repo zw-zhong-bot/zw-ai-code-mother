@@ -4,8 +4,9 @@
       <a-descriptions-item label="ID">{{ detail.id }}</a-descriptions-item>
       <a-descriptions-item label="封面">
         <img
-          :src="detail?.cover || `https://picsum.photos/200/120?random=${detail?.id}`"
+          :src="getAppCoverUrl(detail?.cover, detail?.id)"
           style="width: 200px; height: 120px; object-fit: cover; border-radius: 8px"
+          @error="handleCoverLoadError"
         />
       </a-descriptions-item>
       <a-descriptions-item label="优先级">{{ detail.priority }}</a-descriptions-item>
@@ -23,19 +24,44 @@
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getAppById } from '@/api/appController.ts'
+import { getAppCoverUrl } from './appCoverUtils'
 
 const route = useRoute()
 const router = useRouter()
 const id = String(route.params.id as string)
 const detail = ref<API.AppVO | undefined>()
 
+/**
+ * 获取应用详情
+ */
 const fetchDetail = async () => {
-  const res = await getAppById({ id: id as any })
-  if (res.data.code === 0) detail.value = res.data.data as any
+  const res = await getAppById({ id })
+  if (res.data.code === 0) detail.value = res.data.data as API.AppVO
 }
 
-const goChat = () => router.push(`/app/chat/${String(id)}`)
+/**
+ * 跳转到对话页面
+ */
+const goChat = () => {
+  // 添加view=1参数，避免自动发送消息
+  router.push({ path: `/app/chat/${String(id)}`, query: { view: '1' } })
+}
+
+/**
+ * 跳转到编辑页面
+ */
 const goEdit = () => router.push(`/app/edit/${String(id)}`)
+
+/**
+ * 处理封面图片加载失败
+ * @param event 错误事件
+ */
+const handleCoverLoadError = (event: Event) => {
+  const imgElement = event.target as HTMLImageElement
+  console.warn(`封面图片加载失败，使用默认封面`)
+  imgElement.src = getAppCoverUrl('', detail.value?.id)
+  imgElement.alt = '默认封面'
+}
 
 onMounted(fetchDetail)
 </script>

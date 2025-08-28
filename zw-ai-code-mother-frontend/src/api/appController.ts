@@ -30,7 +30,7 @@ export async function deleteApp(body: API.DeleteRequest, options?: { [key: strin
 export async function getAppByIdAdmin(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.getAppByIdAdminParams,
-  options?: { [key: string]: any }
+  options?: { [key: string]: any },
 ) {
   return request<API.BaseResponseApp>('/app/admin/get/vo', {
     method: 'GET',
@@ -69,7 +69,7 @@ export async function updateApp(body: API.AppUpdateRequest, options?: { [key: st
 export async function chatToGenCode(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.chatToGenCodeParams,
-  options?: { [key: string]: any }
+  options?: { [key: string]: any },
 ) {
   return request<API.ServerSentEventString[]>('/app/chat/gen/code', {
     method: 'GET',
@@ -104,11 +104,26 @@ export async function deployApp(body: API.AppDeployRequest, options?: { [key: st
   })
 }
 
+/** 此处后端没有提供注释 GET /app/get/cover */
+export async function getAppCover(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.getAppCoverParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.BaseResponseString>('/app/get/cover', {
+    method: 'GET',
+    params: {
+      ...params,
+    },
+    ...(options || {}),
+  })
+}
+
 /** 此处后端没有提供注释 GET /app/get/vo */
 export async function getAppById(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.getAppByIdParams,
-  options?: { [key: string]: any }
+  options?: { [key: string]: any },
 ) {
   return request<API.BaseResponseAppVO>('/app/get/vo', {
     method: 'GET',
@@ -122,7 +137,7 @@ export async function getAppById(
 /** 此处后端没有提供注释 POST /app/good/list/page/vo */
 export async function listFeaturedAppByPage(
   body: API.AppQueryRequest,
-  options?: { [key: string]: any }
+  options?: { [key: string]: any },
 ) {
   return request<API.BaseResponsePageAppVO>('/app/good/list/page/vo', {
     method: 'POST',
@@ -152,6 +167,26 @@ export async function updateMyApp(body: API.AppUpdateRequest, options?: { [key: 
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
+/** 此处后端没有提供注释 POST /app/upload/cover */
+export async function uploadAppCover(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.uploadAppCoverParams,
+  body: {},
+  options?: { [key: string]: any },
+) {
+  return request<API.BaseResponseString>('/app/upload/cover', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    params: {
+      ...params,
     },
     data: body,
     ...(options || {}),

@@ -26,9 +26,10 @@
       <template #bodyCell="{ column, record }">
         <template v-if="column.dataIndex === 'userAvatar'">
           <a-avatar
-            :src="avatarCache.get(record.id) || `https://picsum.photos/120/120?random=${record.id}`"
+            :src="avatarCache.get(record.id) || getDefaultAvatar(record.id)"
             :size="60"
             :alt="record.userName"
+            @error="handleAvatarError($event, record.id)"
           />
         </template>
         <template v-else-if="column.dataIndex === 'userRole'">
@@ -273,6 +274,19 @@ const updateFormRules = {
 // 头像缓存
 const avatarCache = ref<Map<number, string>>(new Map())
 
+// 获取默认头像
+const getDefaultAvatar = (userId: number): string => {
+  return `https://picsum.photos/120/120?random=${userId}`
+}
+
+// 处理头像加载错误
+const handleAvatarError = (event: Event, userId: number) => {
+  const avatarElement = event.target as HTMLImageElement
+  avatarElement.src = getDefaultAvatar(userId)
+  avatarElement.alt = '默认头像'
+  console.warn(`用户ID ${userId} 的头像加载失败，已切换到默认头像`)
+}
+
 // 拼接完整的头像URL
 const getFullAvatarUrl = (avatarPath: string): string => {
   if (!avatarPath) return ''
@@ -385,7 +399,7 @@ const customUpload = async (options: {
     }
 
     // 调用上传API
-    const res = await uploadUserAvatar(formData)
+    const res = await uploadUserAvatar({ data: formData })
 
     console.log('上传响应:', res.data)
 

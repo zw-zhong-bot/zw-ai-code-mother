@@ -47,6 +47,29 @@ public class StaticResourceController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+    
+    /**
+     * 提供应用封面文件访问
+     * 访问格式：http://localhost:8123/api/static/fengmian/{fileName}
+     */
+    @GetMapping("/fengmian/{fileName:.+}")
+    public ResponseEntity<Resource> serveCoverFile(@PathVariable String fileName) {
+        try {
+            String filePath = "src/main/resources/static/fengmian/" + fileName;
+            File file = new File(filePath);
+            
+            if (!file.exists()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            Resource resource = new FileSystemResource(file);
+            return ResponseEntity.ok()
+                    .header("Content-Type", getImageContentType(fileName))
+                    .body(resource);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 
     /**
      * 提供静态资源访问，支持目录重定向

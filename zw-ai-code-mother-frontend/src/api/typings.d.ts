@@ -147,6 +147,10 @@ declare namespace API {
     id: number
   }
 
+  type getAppCoverParams = {
+    appId: string | number
+  }
+
   type getUserAvatarParams = {
     userId: number
   }
@@ -198,8 +202,12 @@ declare namespace API {
     deployKey: string
   }
 
+  type uploadAppCoverParams = {
+    appId: string | number
+  }
+
   type uploadUserAvatarParams = {
-    userId: number
+    userId?: number
   }
 
   type User = {

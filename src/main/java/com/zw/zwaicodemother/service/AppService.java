@@ -7,6 +7,7 @@ import com.zw.zwaicodemother.model.dto.app.AppQueryRequest;
 import com.zw.zwaicodemother.model.entity.App;
 import com.zw.zwaicodemother.model.entity.User;
 import com.zw.zwaicodemother.model.vo.AppVO;
+import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
@@ -61,6 +62,25 @@ public interface AppService extends IService<App> {
      * @return 可访问的部署地址
      */
     public String deployApp(Long appId, User loginUser);
+
+    /**
+     * 上传应用封面
+     *
+     * @param appId 应用ID
+     * @param file 封面文件
+     * @param loginUser 登录用户
+     * @return 封面图片URL
+     */
+    String uploadAppCover(Long appId, MultipartFile file, User loginUser);
+    
+    /**
+     * 获取应用封面
+     *
+     * @param appId 应用ID
+     * @param loginUser 登录用户
+     * @return 封面图片URL
+     */
+    String getAppCover(Long appId, User loginUser);
 
 
 }

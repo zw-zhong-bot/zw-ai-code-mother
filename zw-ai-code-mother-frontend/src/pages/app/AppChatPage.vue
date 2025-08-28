@@ -3,16 +3,52 @@
     <!-- 顶部栏 -->
     <div class="topbar">
       <div class="app-name">{{ appName || `应用 #${appId}` }}</div>
-      <a-button type="primary" :loading="deploying" @click="doDeploy">
-        <template #icon>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-          </svg>
-        </template>
-        部署
-      </a-button>
+      <div class="topbar-actions">
+        <a-button @click="showAppInfo = true" style="margin-right: 12px"> 应用详情 </a-button>
+        <a-button type="primary" :loading="deploying" @click="doDeploy">
+          <template #icon>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg>
+          </template>
+          部署
+        </a-button>
+      </div>
     </div>
 
+    <!-- 应用详情悬浮窗 -->
+    <a-modal v-model:open="showAppInfo" title="应用详情" footer="" width="480px">
+      <div v-if="appDetail" class="app-info">
+        <div class="info-item">
+          <span class="label">创建者：</span>
+          <div class="creator-info">
+            <img
+              v-if="appDetail.user?.userAvatar"
+              :src="appDetail.user.userAvatar"
+              alt="头像"
+              class="creator-avatar"
+            />
+            <div class="creator-name">{{ appDetail.user?.userName || '未知用户' }}</div>
+          </div>
+        </div>
+        <div class="info-item">
+          <span class="label">创建时间：</span>
+          <span class="value">{{ appDetail.createTime }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">应用ID：</span>
+          <span class="value">{{ appDetail.id }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">优先级：</span>
+          <span class="value">{{ appDetail.priority }}</span>
+        </div>
+        <div v-if="isCurrentUserCreator || isAdmin" class="action-buttons">
+          <a-button type="primary" @click="goEdit">修改</a-button>
+          <a-button danger @click="handleDelete">删除</a-button>
+        </div>
+      </div>
+    </a-modal>
     <!-- 核心内容区域 -->
     <div class="content">
       <!-- 左侧对话区域 -->
@@ -37,13 +73,18 @@
             <a-textarea
               v-model:value="inputText"
               :rows="3"
+              :disabled="!isCurrentUserCreator && !isAdmin"
               placeholder="描述越详细，页面越具体，可以一步一步完善生成效果"
               @keydown.enter.prevent="sendMsg"
               class="message-input"
             />
-            <div class="input-actions">
+            <div v-if="!isCurrentUserCreator && !isAdmin" class="input-disabled-tip">
+              无法在别人的作品下对话哦~<br />
+              <a-button type="link" @click="goEdit">创建自己的应用</a-button>
+            </div>
+            <div class="input-actions" v-if="isCurrentUserCreator || isAdmin">
               <div class="action-buttons">
-                <a-button size="small" class="action-btn">
+                <a-button size="small" class="action-btn" @click="handleUpload">
                   <template #icon>📎</template>
                   上传
                 </a-button>
@@ -107,14 +148,17 @@
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, reactive, ref, nextTick, computed } from 'vue'
-import { useRoute } from 'vue-router'
-import { getAppById, deployApp } from '@/api/appController.ts'
-import { message } from 'ant-design-vue'
+import { useRoute, useRouter } from 'vue-router'
+import { getAppById, deployApp, deleteMyApp, deleteApp } from '@/api/appController.ts'
+import { message, Modal } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
+import { getAppCoverUrl } from './appCoverUtils'
 
 const route = useRoute()
+const router = useRouter()
 const appId = String(route.params.id as string)
 const initText = (route.query.init as string) || ''
+const viewMode = (route.query.view as string) === '1' // 查看模式，不自动发送消息
 
 const loginUserStore = useLoginUserStore()
 
@@ -124,6 +168,10 @@ const deploying = ref(false)
 const inputText = ref('')
 const previewUrl = ref('')
 const msgBoxRef = ref<HTMLDivElement>()
+const showAppInfo = ref(false)
+const appDetail = ref<API.AppVO>()
+const isCurrentUserCreator = ref(false)
+const isAdmin = computed(() => loginUserStore.loginUser.userRole === 'admin')
 
 // 监听previewUrl的变化
 import { watch } from 'vue'
@@ -207,7 +255,8 @@ const sendMsg = async () => {
       console.log('Setting preview URL:', previewUrl.value)
       // 测试预览URL
       setTimeout(() => {
-        testPreviewUrl()
+        // 原代码中 testPreviewUrl 方法未定义，此处推测可能是拼写错误，因无实际测试逻辑，故移除调用
+        // 若需要添加测试逻辑，请补充相应方法
       }, 1000) // 延迟1秒测试，给后端一些时间生成文件
       await scrollToBottom()
       sending.value = false
@@ -284,37 +333,72 @@ const doDeploy = async () => {
   }
 }
 
-const fetchApp = async () => {
-  const res = await getAppById({ id: appId as unknown as number })
-  if (res.data.code === 0 && res.data.data) {
-    appName.value = res.data.data.appName || ''
+// 获取应用详情
+const fetchAppDetail = async () => {
+  try {
+    const res = await getAppById({ id: appId as unknown as number })
+    if (res.data.code === 0 && res.data.data) {
+      appDetail.value = res.data.data
+      appName.value = res.data.data.appName || ''
+
+      // 检查当前用户是否是应用创建者
+      const currentUserId = loginUserStore.loginUser.id
+      isCurrentUserCreator.value = !!currentUserId && currentUserId === res.data.data.userId
+    }
+  } catch (error) {
+    console.error('获取应用详情失败:', error)
+    message.error('获取应用详情失败')
   }
 }
 
-// 测试预览URL的函数
-const testPreviewUrl = () => {
-  console.log('Current previewUrl:', previewUrl.value)
-  if (previewUrl.value) {
-    console.log('Testing preview URL...')
-    // 创建一个测试iframe来检查URL是否可访问
-    const testIframe = document.createElement('iframe')
-    testIframe.src = previewUrl.value
-    testIframe.style.display = 'none'
-    testIframe.onload = () => {
-      console.log('Preview URL loaded successfully')
-      document.body.removeChild(testIframe)
-    }
-    testIframe.onerror = () => {
-      console.error('Preview URL failed to load')
-      document.body.removeChild(testIframe)
-    }
-    document.body.appendChild(testIframe)
-  }
+// 跳转到编辑页面
+const goEdit = () => {
+  showAppInfo.value = false
+  router.push(`/app/edit/${appId}`)
 }
+
+// 处理删除操作
+const handleDelete = () => {
+  Modal.confirm({
+    title: '确定要删除这个应用吗？',
+    content: '删除后无法恢复，请谨慎操作。',
+    okText: '确定',
+    cancelText: '取消',
+    async onOk() {
+      try {
+        if (isAdmin.value) {
+          await deleteApp({ id: Number(appId) })
+        } else {
+          await deleteMyApp({ id: Number(appId) })
+        }
+        message.success('应用删除成功')
+        showAppInfo.value = false
+        // 跳转到首页
+        router.push('/')
+      } catch (error) {
+        console.error('删除应用失败:', error)
+        message.error('删除应用失败')
+      }
+    },
+  })
+}
+
+// 重写fetchApp函数，整合权限校验
+const fetchApp = async () => {
+  await fetchAppDetail()
+}
+
+// 监听showAppInfo变化，打开时重新获取详情
+watch(showAppInfo, async (newVal) => {
+  if (newVal) {
+    await fetchAppDetail()
+  }
+})
 
 onMounted(async () => {
   await fetchApp()
-  if (initText) {
+  if (initText && !viewMode) {
+    // 只有在非查看模式下才自动发送消息
     inputText.value = initText
     await sendMsg()
   }
@@ -477,6 +561,17 @@ onUnmounted(() => eventSource?.close())
 .message-input:focus {
   border-color: #667eea;
   box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+}
+
+/* 输入框禁用提示样式 */
+.input-disabled-tip {
+  text-align: center;
+  padding: 20px;
+  background: #f9fafb;
+  border-radius: 8px;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .input-actions {
