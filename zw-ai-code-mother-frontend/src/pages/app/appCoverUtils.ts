@@ -6,6 +6,8 @@
  * @modifyDate 2024-07-19
  */
 
+import { getFullResourceUrl } from '@/config/env'
+
 /**
  * 拼接完整的封面URL
  * @param coverPath 封面路径
@@ -13,43 +15,28 @@
  */
 export const getFullCoverUrl = (coverPath: string): string => {
   if (!coverPath) return ''
-
-  // 如果已经是完整的URL，直接返回
-  if (coverPath.startsWith('http')) {
-    console.log('封面路径已是完整URL:', coverPath)
-    return coverPath
-  }
-
-  // 确保路径格式正确，避免重复添加斜杠
-  const baseUrl = 'http://localhost:8123/api'
-  const normalizedPath = coverPath.startsWith('/') ? coverPath.substring(1) : coverPath
-  const fullUrl = `${baseUrl}/${normalizedPath}`
-
-  console.log('拼接后的封面URL:', fullUrl)
-  return fullUrl
+  return getFullResourceUrl(coverPath)
 }
 
 /**
  * 获取默认封面URL
- * @param appId 应用ID
  * @returns 默认封面URL
  */
-export const getDefaultCoverUrl = (appId?: number | string): string => {
-  // 使用picsum.photos提供随机图片作为占位符
-  return `https://picsum.photos/80/48?random=${appId || 'default'}`
+export const getDefaultCoverUrl = (): string => {
+  // 使用本地图片作为默认封面
+  return '/src/assets/ping/touxiang.jpg'
 }
 
 /**
  * 获取完整的应用封面URL，如果没有封面则返回默认封面
  * @param coverPath 封面路径
- * @param appId 应用ID
  * @returns 完整的封面URL
  */
-export const getAppCoverUrl = (coverPath?: string, appId?: number | string): string => {
+export const getAppCoverUrl = (coverPath?: string): string => {
   if (coverPath) {
     return getFullCoverUrl(coverPath)
   }
-  return getDefaultCoverUrl(appId)
+  return getDefaultCoverUrl()
 }
 
 /**
@@ -86,15 +73,11 @@ export const checkImageUrlValidity = async (
 /**
  * 获取可靠的应用封面URL，如果指定URL无效则返回默认封面
  * @param coverPath 封面路径
- * @param appId 应用ID
  * @returns Promise<string> 可靠的封面URL
  */
-export const getReliableAppCoverUrl = async (
-  coverPath?: string,
-  appId?: number | string,
-): Promise<string> => {
+export const getReliableAppCoverUrl = async (coverPath?: string): Promise<string> => {
   if (!coverPath) {
-    return getDefaultCoverUrl(appId)
+    return getDefaultCoverUrl()
   }
 
   const fullUrl = getFullCoverUrl(coverPath)
@@ -106,11 +89,11 @@ export const getReliableAppCoverUrl = async (
       return fullUrl
     } else {
       console.warn(`封面图片无法加载，使用默认封面: ${fullUrl}`)
-      return getDefaultCoverUrl(appId)
+      return getDefaultCoverUrl()
     }
   } catch (error) {
     console.error('检查封面图片有效性失败:', error)
-    return getDefaultCoverUrl(appId)
+    return getDefaultCoverUrl()
   }
 }
 

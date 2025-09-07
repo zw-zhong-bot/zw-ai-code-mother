@@ -88,22 +88,21 @@ import { useLoginUserStore } from '@/stores/loginUser.ts'
 import dayjs from 'dayjs'
 import { PlusOutlined } from '@ant-design/icons-vue'
 import type { UploadChangeParam } from 'ant-design-vue'
+import { getFullResourceUrl } from '@/config/env'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
 
 // 拼接完整的头像URL
 const getFullAvatarUrl = (avatarPath: string): string => {
-  if (!avatarPath) return ''
-  if (avatarPath.startsWith('http')) return avatarPath
-  return `http://localhost:8123${avatarPath}`
+  return getFullResourceUrl(avatarPath)
 }
 
 // 计算用户头像URL
 const userAvatarUrl = computed(() => {
   const avatar = userInfo.userAvatar
   if (!avatar) {
-    return `https://picsum.photos/120/120?random=user`
+    return '/src/assets/ping/touxiang.jpg'
   }
   return getFullAvatarUrl(avatar)
 })
@@ -199,7 +198,7 @@ const customAvatarUpload = async (options: {
     }
 
     // 调用上传API
-    const res = await uploadUserAvatar(formData)
+    const res = await uploadUserAvatar({ userId: userInfo.id }, formData)
 
     console.log('上传响应:', res.data)
 
@@ -283,6 +282,12 @@ onMounted(() => {
 }
 
 .avatar-uploader .ant-upload {
+  width: 128px;
+  height: 128px;
+  margin: 0 auto;
+}
+
+atar-uploader .ant-upload {
   width: 128px;
   height: 128px;
   margin: 0 auto;

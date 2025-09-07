@@ -65,6 +65,7 @@ import { PlusOutlined } from '@ant-design/icons-vue'
 import type { UploadChangeParam } from 'ant-design-vue'
 import { updateUser, getLoginUser, uploadUserAvatar } from '@/api/userController.ts'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
+import { getFullResourceUrl } from '@/config/env'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
@@ -73,7 +74,7 @@ const loginUserStore = useLoginUserStore()
 const getFullAvatarUrl = (avatarPath: string): string => {
   if (!avatarPath) return ''
   if (avatarPath.startsWith('http')) return avatarPath
-  return `http://localhost:8123${avatarPath}`
+  return getFullResourceUrl(avatarPath)
 }
 
 const formRef = ref<FormInstance>()
@@ -121,18 +122,12 @@ const customUpload = async (options: {
       type: file.type,
     })
 
-    // 创建 FormData
+    // 创建 FormData，只包含文件
     const formData = new FormData()
     formData.append('file', file)
-    formData.append('userId', String(form.id))
 
-    // 调试：检查 FormData 内容
-    for (const [key, value] of formData.entries()) {
-      console.log('FormData 内容:', key, value)
-    }
-
-    // 调用上传API
-    const res = await uploadUserAvatar(formData)
+    // 调用上传API，将 userId 作为 URL 参数传递
+    const res = await uploadUserAvatar({ userId: form.id }, formData)
 
     console.log('上传响应:', res.data)
 

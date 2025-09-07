@@ -4,7 +4,7 @@
       <a-descriptions-item label="ID">{{ detail.id }}</a-descriptions-item>
       <a-descriptions-item label="封面">
         <img
-          :src="getAppCoverUrl(detail?.cover, detail?.id)"
+          :src="getAppCoverUrl(detail?.cover)"
           style="width: 200px; height: 120px; object-fit: cover; border-radius: 8px"
           @error="handleCoverLoadError"
         />
@@ -36,7 +36,10 @@ const detail = ref<API.AppVO | undefined>()
  */
 const fetchDetail = async () => {
   const res = await getAppById({ id })
+  console.log('id用户信息', (detail.value = res.data.data?.codeGenType))
   if (res.data.code === 0) detail.value = res.data.data as API.AppVO
+  // const irl=getAppCoverUrl(detail?.cover);
+  // console.log('id用户信息', irl)
 }
 
 /**
@@ -59,7 +62,7 @@ const goEdit = () => router.push(`/app/edit/${String(id)}`)
 const handleCoverLoadError = (event: Event) => {
   const imgElement = event.target as HTMLImageElement
   console.warn(`封面图片加载失败，使用默认封面`)
-  imgElement.src = getAppCoverUrl('', detail.value?.id)
+  imgElement.src = getAppCoverUrl('')
   imgElement.alt = '默认封面'
 }
 

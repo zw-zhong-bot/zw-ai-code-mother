@@ -88,7 +88,7 @@
             />
             <div v-else>
               <img
-                :src="`https://picsum.photos/100/100?random=create`"
+                :src="'/src/assets/ping/touxiang.jpg'"
                 alt="默认头像"
                 style="width: 100%; height: 100%; object-fit: cover"
               />
@@ -148,7 +148,7 @@
             />
             <div v-else>
               <img
-                :src="`https://picsum.photos/100/100?random=update`"
+                :src="'/src/assets/ping/touxiang.jpg'"
                 alt="默认头像"
                 style="width: 100%; height: 100%; object-fit: cover"
               />
@@ -185,6 +185,7 @@ import {
 } from '@/api/userController.ts'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
+import { getFullResourceUrl } from '@/config/env'
 import type { FormInstance } from 'ant-design-vue'
 
 import type { UploadChangeParam } from 'ant-design-vue'
@@ -275,14 +276,14 @@ const updateFormRules = {
 const avatarCache = ref<Map<number, string>>(new Map())
 
 // 获取默认头像
-const getDefaultAvatar = (userId: number): string => {
-  return `https://picsum.photos/120/120?random=${userId}`
+const getDefaultAvatar = (_userId?: number): string => {
+  return '/src/assets/ping/touxiang.jpg'
 }
 
 // 处理头像加载错误
 const handleAvatarError = (event: Event, userId: number) => {
   const avatarElement = event.target as HTMLImageElement
-  avatarElement.src = getDefaultAvatar(userId)
+  avatarElement.src = getDefaultAvatar()
   avatarElement.alt = '默认头像'
   console.warn(`用户ID ${userId} 的头像加载失败，已切换到默认头像`)
 }
@@ -291,7 +292,7 @@ const handleAvatarError = (event: Event, userId: number) => {
 const getFullAvatarUrl = (avatarPath: string): string => {
   if (!avatarPath) return ''
   if (avatarPath.startsWith('http')) return avatarPath
-  return `http://localhost:8123${avatarPath}`
+  return getFullResourceUrl(avatarPath)
 }
 
 // 获取用户头像URL
@@ -399,7 +400,7 @@ const customUpload = async (options: {
     }
 
     // 调用上传API
-    const res = await uploadUserAvatar({ data: formData })
+    const res = await uploadUserAvatar({}, formData)
 
     console.log('上传响应:', res.data)
 
@@ -446,7 +447,7 @@ const customUpdateUpload = async (options: {
     }
 
     // 调用上传API
-    const res = await uploadUserAvatar(formData)
+    const res = await uploadUserAvatar({ userId: updateForm.id as any }, formData)
 
     console.log('上传响应:', res.data)
 

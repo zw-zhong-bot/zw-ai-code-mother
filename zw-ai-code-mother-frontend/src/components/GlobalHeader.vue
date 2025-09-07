@@ -59,6 +59,7 @@ import { userLogout } from '@/api/userController.ts'
 // JS 中引入 Store
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { LogoutOutlined, HomeOutlined, UserOutlined } from '@ant-design/icons-vue'
+import { getFullResourceUrl } from '@/config/env'
 
 const loginUserStore = useLoginUserStore()
 
@@ -66,14 +67,14 @@ const loginUserStore = useLoginUserStore()
 const getFullAvatarUrl = (avatarPath: string): string => {
   if (!avatarPath) return ''
   if (avatarPath.startsWith('http')) return avatarPath
-  return `http://localhost:8123${avatarPath}`
+  return getFullResourceUrl(avatarPath)
 }
 
 // 计算用户头像URL
 const userAvatarUrl = computed(() => {
   const avatar = loginUserStore.loginUser.userAvatar
   if (!avatar) {
-    return `https://picsum.photos/32/32?random=user`
+    return '/src/assets/ping/touxiang.jpg'
   }
   return getFullAvatarUrl(avatar)
 })

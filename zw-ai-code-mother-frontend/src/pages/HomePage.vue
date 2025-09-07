@@ -39,15 +39,25 @@
         >
           <div class="app-cover">
             <img
-              :src="getAppCoverUrl(app.cover, app.id)"
+              :src="getAppCoverUrl(app.cover)"
               :alt="app.appName || '应用封面'"
               class="cover-image"
-              @error="handleImageError($event, app.id)"
+              @error="handleImageError($event)"
             />
           </div>
           <div class="app-info">
-            <div class="app-name">{{ app.appName || '未命名应用' }}</div>
-            <div class="app-time">{{ formatDate(app.createTime) }}</div>
+            <div class="user-avatar">
+              <img
+                :src="getUserAvatarUrl(app.user?.id)"
+                :alt="app.user?.userName || '用户头像'"
+                class="avatar-image"
+                @error="handleAvatarError($event)"
+              />
+            </div>
+            <div class="app-details">
+              <div class="app-name">{{ app.appName || '未命名应用' }}</div>
+              <div class="user-name">{{ app.user?.userName || '匿名用户' }}</div>
+            </div>
           </div>
           <div class="app-actions">
             <a-button type="primary" size="small" @click.stop="goChat(app.id as unknown as string)">
@@ -64,7 +74,7 @@
           v-model:current="myQuery.pageNum"
           v-model:pageSize="myQuery.pageSize"
           :total="myTotal"
-          :show-total="(total) => `共 ${total} 条`"
+          :show-total="(total: number) => `共 ${total} 条`"
           @change="onMyTableChange"
         />
       </div>
@@ -94,15 +104,25 @@
         >
           <div class="app-cover">
             <img
-              :src="getAppCoverUrl(app.cover, app.id)"
+              :src="getAppCoverUrl(app.cover)"
               :alt="app.appName || '应用封面'"
               class="cover-image"
-              @error="handleImageError($event, app.id)"
+              @error="handleImageError($event)"
             />
           </div>
           <div class="app-info">
-            <div class="app-name">{{ app.appName || '未命名应用' }}</div>
-            <div class="app-time">{{ formatDate(app.createTime) }}</div>
+            <div class="user-avatar">
+              <img
+                :src="getUserAvatarUrl(app.user?.id)"
+                :alt="app.user?.userName || '用户头像'"
+                class="avatar-image"
+                @error="handleAvatarError($event)"
+              />
+            </div>
+            <div class="app-details">
+              <div class="app-name">{{ app.appName || '未命名应用' }}</div>
+              <div class="user-name">{{ app.user?.userName || '匿名用户' }}</div>
+            </div>
           </div>
           <div class="app-actions">
             <a-button type="primary" size="small" @click.stop="goChat(app.id as unknown as string)">
@@ -119,7 +139,7 @@
           v-model:current="goodQuery.pageNum"
           v-model:pageSize="goodQuery.pageSize"
           :total="goodTotal"
-          :show-total="(total) => `共 ${total} 条`"
+          :show-total="(total: number) => `共 ${total} 条`"
           @change="onGoodTableChange"
         />
       </div>
@@ -128,12 +148,13 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref, computed } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { addApp, listMyAppByPage, listFeaturedAppByPage } from '@/api/appController.ts'
 import { getAppCoverUrl } from './app/appCoverUtils'
 import dayjs from 'dayjs'
+import { getAppDeployUrl, API_BASE_URL } from '@/config/env'
 
 const router = useRouter()
 
@@ -242,7 +263,7 @@ const goChat = (id: string) => {
  */
 const viewApp = (deployKey?: string) => {
   if (deployKey) {
-    window.open(`http://localhost/${deployKey}`, '_blank')
+    window.open(getAppDeployUrl(deployKey), '_blank')
   }
 }
 
@@ -259,12 +280,33 @@ const formatDate = (dateString?: string) => {
 /**
  * 处理图片加载错误
  * @param event 错误事件
- * @param appId 应用ID
  */
-const handleImageError = (event: Event, appId?: number | string) => {
+const handleImageError = (event: Event) => {
   const imgElement = event.target as HTMLImageElement
-  imgElement.src = getAppCoverUrl('', appId)
+  imgElement.src = getAppCoverUrl('')
   imgElement.alt = '默认封面'
+}
+
+/**
+ * 获取用户头像URL
+ * @param userId 用户ID
+ * @returns 头像URL
+ */
+const getUserAvatarUrl = (userId?: number) => {
+  if (!userId) {
+    return '/src/assets/ping/touxiang.jpg' // 默认头像
+  }
+  return `${API_BASE_URL}/user/avatar?userId=${userId}`
+}
+
+/**
+ * 处理头像加载错误
+ * @param event 错误事件
+ */
+const handleAvatarError = (event: Event) => {
+  const imgElement = event.target as HTMLImageElement
+  imgElement.src = '/src/assets/ping/touxiang.jpg'
+  imgElement.alt = '默认头像'
 }
 
 onMounted(() => {
@@ -369,6 +411,34 @@ onMounted(() => {
 .app-info {
   padding: 16px;
   flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 用户头像样式 */
+.user-avatar {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 应用详情样式 */
+.app-details {
+  flex: 1;
+  min-width: 0; /* 允许内容缩小 */
 }
 
 .app-name {
@@ -381,9 +451,12 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-.app-time {
+.user-name {
   font-size: 14px;
   color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 应用操作按钮样式 */
