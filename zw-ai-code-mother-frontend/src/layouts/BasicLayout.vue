@@ -17,12 +17,6 @@
 import { RouterView } from 'vue-router'
 import GlobalHeader from '@/components/GlobalHeader.vue'
 import GlobalFooter from '@/components/GlobalFooter.vue'
-
-/*//测试请求
-import { healthCheck} from '@/api/healthController.ts'
-healthCheck().then((res)=>{
-  console.log(res)
-})*/
 </script>
 
 <style scoped>

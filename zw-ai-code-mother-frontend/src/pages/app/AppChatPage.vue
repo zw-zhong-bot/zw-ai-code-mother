@@ -820,8 +820,8 @@ onUnmounted(() => {
 /* 核心内容区域 */
 .content {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  grid-template-columns: 2fr 3fr;
+  gap: 12px;
   height: calc(100vh - 140px);
   min-height: 600px;
 }

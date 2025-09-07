@@ -1,15 +1,15 @@
 <template>
   <div class="home-page">
     <div class="hero">
-      <h1 class="title">一句话 呈所想</h1>
-      <p class="sub">与 AI 对话轻松创建应用和网站</p>
+      <h1 class="title">AI 应用生成平台</h1>
+      <p class="sub" style="opacity: 0.95">一句话轻松创建网站应用</p>
       <div class="prompt-box">
         <a-input-search
           v-model:value="promptText"
           :loading="creating"
           enter-button="创建应用"
           size="large"
-          placeholder="使用 NoCode 创建一个高效的小工具，帮我计算……"
+          placeholder="帮我创建个人博客网站"
           @search="doCreate"
         />
       </div>
