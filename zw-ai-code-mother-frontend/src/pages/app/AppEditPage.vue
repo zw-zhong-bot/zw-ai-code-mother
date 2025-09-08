@@ -239,12 +239,25 @@ const handleCoverUpload = () => {
           return
         }
 
+        console.log('开始上传封面，文件信息:', {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+        })
+
         // 创建 FormData
         const formData = new FormData()
         formData.append('file', file)
 
         // 调用上传API
-        const res = await uploadAppCover({ appId: appId }, formData)
+        const res = await uploadAppCover({ appId: appId }, formData, {
+          headers: {
+            // 重要：设置正确的Content-Type，让浏览器自动设置multipart/form-data边界
+            'Content-Type': 'multipart/form-data',
+          },
+        })
+
+        console.log('封面上传响应:', res.data)
 
         if (res.data.code === 0 && res.data.data) {
           // 更新封面URL
@@ -255,7 +268,7 @@ const handleCoverUpload = () => {
         }
       } catch (error) {
         console.error('封面上传失败:', error)
-        message.error('封面上传失败')
+        message.error('封面上传失败: ' + (error instanceof Error ? error.message : '未知错误'))
       }
     }
   }

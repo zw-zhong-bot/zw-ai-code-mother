@@ -104,6 +104,23 @@
 
         <!-- 消息区域 -->
         <div class="messages" ref="msgBoxRef">
+          <!-- 加载更多按钮 -->
+          <div v-if="hasMoreHistory" class="load-more-container">
+            <a-button
+              type="text"
+              :loading="loadingHistory"
+              @click="loadChatHistory(true)"
+              class="load-more-btn"
+            >
+              <template #icon v-if="!loadingHistory">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z" />
+                </svg>
+              </template>
+              {{ loadingHistory ? '加载中...' : '加载更多历史消息' }}
+            </a-button>
+          </div>
+
           <div v-for="m in messages" :key="m.id" class="msg" :class="m.role">
             <div class="avatar">
               <img :src="m.role === 'user' ? userAvatar : aiAvatar" :alt="m.role" />
@@ -125,7 +142,7 @@
                 :disabled="!isCurrentUserCreator && !isAdmin"
                 :placeholder="
                   isCurrentUserCreator || isAdmin
-                    ? '描述越详细，页面越具体，可以一步一步完善生成效果'
+                    ? '请描述你想生成的网站，越详细效果越好哦'
                     : '无法在别人的作品下对话哦~'
                 "
                 @keydown.enter.prevent="sendMsg"
@@ -256,6 +273,7 @@
 import { onMounted, onUnmounted, reactive, ref, nextTick, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getAppById, deployApp, deleteMyApp, deleteApp } from '@/api/appController.ts'
+import { listAppChatHistoryByPage } from '@/api/chatHistoryController.ts'
 import { message, Modal, Tooltip } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import {
@@ -275,7 +293,7 @@ const route = useRoute()
 const router = useRouter()
 const appId = String(route.params.id as string)
 const initText = (route.query.init as string) || ''
-const viewMode = (route.query.view as string) === '1' // 查看模式，不自动发送消息
+// 移除 viewMode，改为根据对话历史判断是否自动发送消息
 
 const loginUserStore = useLoginUserStore()
 
@@ -291,6 +309,12 @@ const deployUrl = ref('')
 const appDetail = ref<API.AppVO>()
 const isCurrentUserCreator = ref(false)
 const isAdmin = computed(() => loginUserStore.loginUser.userRole === 'admin')
+
+// 对话历史相关状态
+const chatHistory = ref<API.ChatHistory[]>([])
+const loadingHistory = ref(false)
+const hasMoreHistory = ref(true)
+const lastCreateTime = ref<string>('')
 
 // iframe 状态管理
 const iframeLoading = ref(false)
@@ -724,6 +748,85 @@ const fetchAppDetail = async () => {
   }
 }
 
+/**
+ * 加载对话历史记录
+ * @param loadMore 是否为加载更多操作
+ */
+const loadChatHistory = async (loadMore = false) => {
+  try {
+    loadingHistory.value = true
+
+    const params: API.listAppChatHistoryByPageParams = {
+      appId: appId as unknown as number,
+      pageSize: 10,
+    }
+
+    // 如果是加载更多，使用游标分页
+    if (loadMore && lastCreateTime.value) {
+      params.lastCreateTime = lastCreateTime.value
+    }
+
+    const res = await listAppChatHistoryByPage(params)
+
+    if (res.data.code === 0 && res.data.data) {
+      const newHistory = res.data.data.records || []
+
+      if (loadMore) {
+        // 加载更多时，将新数据添加到现有历史记录前面（因为是按时间倒序获取的）
+        chatHistory.value = [...newHistory, ...chatHistory.value]
+      } else {
+        // 首次加载时，直接设置历史记录
+        chatHistory.value = newHistory
+      }
+
+      // 更新游标和是否还有更多数据的状态
+      if (newHistory.length > 0) {
+        lastCreateTime.value = newHistory[newHistory.length - 1].createTime || ''
+        hasMoreHistory.value = newHistory.length === 10 // 如果返回的数据等于页面大小，说明可能还有更多数据
+      } else {
+        hasMoreHistory.value = false
+      }
+
+      // 将历史记录转换为消息格式并添加到消息列表
+      if (!loadMore) {
+        convertHistoryToMessages()
+      } else {
+        convertHistoryToMessages(true)
+      }
+    }
+  } catch (error) {
+    console.error('加载对话历史失败:', error)
+    message.error('加载对话历史失败')
+  } finally {
+    loadingHistory.value = false
+  }
+}
+
+/**
+ * 将对话历史转换为消息格式
+ * @param prepend 是否添加到消息列表前面
+ */
+const convertHistoryToMessages = (prepend = false) => {
+  const historyMessages: Msg[] = chatHistory.value
+    .sort((a, b) => new Date(a.createTime || '').getTime() - new Date(b.createTime || '').getTime()) // 按时间升序排列
+    .map((history) => ({
+      id: history.id || Date.now(),
+      role: history.messageType === 'user' ? 'user' : 'ai',
+      html: handleSSE(history.message || ''),
+    }))
+
+  if (prepend) {
+    // 加载更多时，将历史消息添加到现有消息前面
+    const currentMessages = messages.slice()
+    messages.length = 0
+    messages.push(...historyMessages, ...currentMessages)
+  } else {
+    // 首次加载时，清空现有消息并添加历史消息
+    messages.length = 0
+    messages.push(...historyMessages)
+  }
+}
+
 // 跳转到编辑页面
 const goEdit = () => {
   showAppInfo.value = false
@@ -775,10 +878,18 @@ watch(showAppInfo, async (newVal) => {
 
 onMounted(async () => {
   await fetchApp()
-  if (initText && !viewMode) {
-    // 只有在非查看模式下才自动发送消息
+  // 加载对话历史
+  await loadChatHistory()
+
+  // 修改自动发送初始消息的逻辑：只有在是自己的app且没有对话历史时才自动发送
+  if (initText && (isCurrentUserCreator.value || isAdmin.value) && chatHistory.value.length === 0) {
     inputText.value = initText
     await sendMsg()
+  }
+
+  // 修改网站展示逻辑：如果有至少2条对话记录，展示网站
+  if (chatHistory.value.length >= 2) {
+    setupPreviewUrl(0) // 立即设置预览URL
   }
 })
 
@@ -869,6 +980,36 @@ onUnmounted(() => {
   overflow-x: hidden;
   background: #f9fafb;
   min-height: 0;
+}
+
+/* 加载更多按钮容器 */
+.load-more-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+  padding: 10px 0;
+}
+
+.load-more-btn {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  padding: 8px 16px;
+  color: #6b7280;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.load-more-btn:hover {
+  border-color: #667eea;
+  color: #667eea;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.load-more-btn:active {
+  transform: translateY(0);
 }
 
 .msg {

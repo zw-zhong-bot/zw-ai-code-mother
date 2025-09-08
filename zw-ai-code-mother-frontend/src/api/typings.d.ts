@@ -102,6 +102,12 @@ declare namespace API {
     message?: string
   }
 
+  type BaseResponsePageChatHistory = {
+    code?: number
+    data?: PageChatHistory
+    message?: string
+  }
+
   type BaseResponsePageUserVO = {
     code?: number
     data?: PageUserVO
@@ -126,6 +132,35 @@ declare namespace API {
     message?: string
   }
 
+  type ChatHistory = {
+    id?: number
+    message?: string
+    messageType?: string
+    appId?: number
+    userId?: number
+    parentId?: number
+    errorMessage?: string
+    errorCode?: string
+    status?: number
+    messageOrder?: number
+    createTime?: string
+    updateTime?: string
+    isDelete?: number
+  }
+
+  type ChatHistoryQueryRequest = {
+    pageNum?: number
+    pageSize?: number
+    sortField?: string
+    sortOrder?: string
+    id?: number
+    message?: string
+    messageType?: string
+    appId?: number
+    userId?: number
+    lastCreateTime?: string
+  }
+
   type chatToGenCodeParams = {
     appId: number
     message: string
@@ -148,7 +183,7 @@ declare namespace API {
   }
 
   type getAppCoverParams = {
-    appId: string | number
+    appId: number
   }
 
   type getUserAvatarParams = {
@@ -161,6 +196,12 @@ declare namespace API {
 
   type getUserVOByIdParams = {
     id: number
+  }
+
+  type listAppChatHistoryByPageParams = {
+    appId: number
+    pageSize?: number
+    lastCreateTime?: string
   }
 
   type LoginUserVO = {
@@ -183,6 +224,15 @@ declare namespace API {
     optimizeCountQuery?: boolean
   }
 
+  type PageChatHistory = {
+    records?: ChatHistory[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+    optimizeCountQuery?: boolean
+  }
+
   type PageUserVO = {
     records?: UserVO[]
     pageNumber?: number
@@ -196,6 +246,10 @@ declare namespace API {
     fileName: string
   }
 
+  type serveCoverFileParams = {
+    fileName: string
+  }
+
   type ServerSentEventString = true
 
   type serveStaticResourceParams = {
@@ -203,7 +257,7 @@ declare namespace API {
   }
 
   type uploadAppCoverParams = {
-    appId: string | number
+    appId: number
   }
 
   type uploadUserAvatarParams = {

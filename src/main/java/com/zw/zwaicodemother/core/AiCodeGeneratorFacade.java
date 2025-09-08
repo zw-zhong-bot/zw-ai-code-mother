@@ -1,6 +1,7 @@
 package com.zw.zwaicodemother.core;
 
 import com.zw.zwaicodemother.ai.AiCodeGeneratorService;
+import com.zw.zwaicodemother.ai.AiCodeGeneratorServiceFactory;
 import com.zw.zwaicodemother.ai.enums.CodeGenTypeEnum;
 import com.zw.zwaicodemother.ai.model.HtmlCodeResult;
 import com.zw.zwaicodemother.ai.model.MultiFileCodeResult;
@@ -21,8 +22,12 @@ import java.io.File;
 @Service
 @Slf4j
 public class AiCodeGeneratorFacade {
+
     @Resource
+    private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
+
     private AiCodeGeneratorService aiCodeGeneratorService;
+
 
     /**
      * 通用流式代码处理方法
@@ -62,9 +67,12 @@ public class AiCodeGeneratorFacade {
         if (codeGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "生成类型为空");
         }
+        //根据appID获取AI服务
+        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
+
         return switch (codeGenTypeEnum) {
             case HTML -> {
-                HtmlCodeResult result = aiCodeGeneratorService.generateHtmlCode(userMessage);
+                HtmlCodeResult result = aiCodeGeneratorService.generateHtmlCode(Math.toIntExact(appId),userMessage);
                 yield CodeFileSaverExecutor.executeSaver(result, CodeGenTypeEnum.HTML, appId);
             }
             case MULTI_FILE -> {
@@ -91,6 +99,9 @@ public class AiCodeGeneratorFacade {
         if (codeGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "生成类型不能为空");
         }
+        //根据appID获取AI服务
+        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
+
         return switch (codeGenTypeEnum) {
             case HTML -> {
                 Flux<String> codeStream = aiCodeGeneratorService.generateHtmlCodeStream(userMessage);
@@ -171,7 +182,7 @@ public class AiCodeGeneratorFacade {
      * @return 保存的目录
      */
     private File generateAndSaveHtmlCode(String userMessage) {
-        HtmlCodeResult result = aiCodeGeneratorService.generateHtmlCode(userMessage);
+        HtmlCodeResult result = aiCodeGeneratorService.generateHtmlCode(1,userMessage);
         return CodeFileSaver.saveHtmlCodeResult(result);
     }
 

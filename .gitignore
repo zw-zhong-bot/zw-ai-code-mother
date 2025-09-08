@@ -60,3 +60,10 @@ build/
 /src/main/resources/static/ping/avatar_88a6e3078c1542aabe7c483dde4105ee.jpg
 /src/main/resources/static/ping/avatar_b5e54342f57b4475b00d3bd1029e38d1.jpg
 /src/main/resources/static/ping/avatar_bd04e8021f2b4efa9141bea18d4b2357.jpg
+/.codebuddy/.rules/my-rule.mdc
+/.codebuddy/analysis-summary.json
+/src/MD/ChatHistory模块后端开发.md
+/src/MD/ChatHistory模块开发文档.md
+/zw-ai-code-mother-frontend/src/md/component-optimization.md
+/zw-ai-code-mother-frontend/应用对话页面优化与对话管理功能开发.md
+!/zw-ai-code-mother-frontend/src/pages/admin/ChatHistoryManagePage.md

@@ -17,9 +17,9 @@
         <a-form-item label="头像">
           <div class="avatar-container">
             <a-avatar :size="120" :src="userAvatarUrl" />
-            <div style="margin-top: 12px">
+            <!-- <div style="margin-top: 12px">
               <a-button size="small" @click="showAvatarUpload = true">修改头像</a-button>
-            </div>
+            </div> -->
           </div>
         </a-form-item>
 

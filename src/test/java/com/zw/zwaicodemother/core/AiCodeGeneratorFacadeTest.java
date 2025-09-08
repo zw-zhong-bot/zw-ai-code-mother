@@ -2,6 +2,7 @@ package com.zw.zwaicodemother.core;
 
 
 import com.zw.zwaicodemother.ai.enums.CodeGenTypeEnum;
+import com.zw.zwaicodemother.ai.model.HtmlCodeResult;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -31,4 +32,6 @@ public class AiCodeGeneratorFacadeTest {
         String completeContent = String.join("", result);
         Assertions.assertNotNull(completeContent);
     }
+
+
 }

@@ -10,6 +10,7 @@ import com.zw.zwaicodemother.model.vo.AppVO;
 import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -82,5 +83,12 @@ public interface AppService extends IService<App> {
      */
     String getAppCover(Long appId, User loginUser);
 
+    /**
+     * 删除应用时关联删除对话历史
+     *
+     * @param id 应用ID
+     * @return 是否成功
+     */
+    boolean removeById(Serializable id);
 
 }

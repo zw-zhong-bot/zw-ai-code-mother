@@ -3,7 +3,8 @@
  * 统一管理项目中所有图片的访问路径和处理逻辑
  * @author ZW
  * @since 2024-12-07
- * @version 1.0.0
+ * @version 1.1.0
+ * @modifyDate 2025-09-08
  */
 
 import { getFullResourceUrl, API_BASE_URL } from '@/config/env'
@@ -147,7 +148,7 @@ export const getUserAvatarFileUrl = (avatarPath: string): string => {
     return avatarPath
   }
 
-  // 使用静态资源基础路径：http://localhost:8123/api/static
+  // 使用静态资源基础路径
   return getFullResourceUrl(avatarPath)
 }
 
@@ -166,7 +167,7 @@ export const getAppCoverUrl = (coverPath?: string): string => {
     return coverPath
   }
 
-  // 使用静态资源基础路径：http://localhost:8123/api/static
+  // 使用静态资源基础路径
   return getFullResourceUrl(coverPath)
 }
 
@@ -303,35 +304,6 @@ export const handleImageError = (
 }
 
 /**
- * 预加载图片
- * @param urls 图片URL数组
- * @returns Promise<void>
- */
-export const preloadImages = async (urls: string[]): Promise<void> => {
-  const promises = urls.map((url) => checkImageValidity(url))
-  await Promise.allSettled(promises)
-}
-
-/**
- * 清除图片缓存
- * @param pattern 缓存键模式（可选）
- */
-export const clearImageCache = (pattern?: string): void => {
-  if (pattern) {
-    // 清除匹配模式的缓存
-    const keys = Array.from(imageCache['cache'].keys())
-    keys.forEach((key) => {
-      if (key.includes(pattern)) {
-        imageCache.delete(key)
-      }
-    })
-  } else {
-    // 清除所有缓存
-    imageCache.clear()
-  }
-}
-
-/**
  * 验证上传的图片文件
  * @param file 图片文件
  * @returns 验证结果
@@ -359,18 +331,20 @@ export const validateImageFile = (file: File): { isValid: boolean; message?: str
 }
 
 /**
- * 获取图片的基础路径信息（用于调试）
+ * 清除图片缓存
+ * @param pattern 缓存键模式（可选）
  */
-export const getImagePathInfo = () => {
-  return {
-    staticBasePath: getFullResourceUrl(''),
-    apiServerUrl: API_BASE_URL,
-    defaultImages: DEFAULT_IMAGES,
-    cacheSize: imageCache['cache'].size,
+export const clearImageCache = (pattern?: string): void => {
+  if (pattern) {
+    // 清除匹配模式的缓存
+    const keys = Array.from(imageCache['cache'].keys())
+    keys.forEach((key) => {
+      if (key.includes(pattern)) {
+        imageCache.delete(key)
+      }
+    })
+  } else {
+    // 清除所有缓存
+    imageCache.clear()
   }
-}
-
-// 开发环境下打印图片路径信息
-if (import.meta.env.DEV) {
-  console.log('🖼️ Image Utils Configuration:', getImagePathInfo())
 }

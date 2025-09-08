@@ -99,10 +99,12 @@ const beforeUpload = (file: File) => {
   const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png'
   if (!isJpgOrPng) {
     message.error('只能上传 JPG/PNG 格式的图片!')
+    return false
   }
   const isLt2M = file.size / 1024 / 1024 < 2
   if (!isLt2M) {
     message.error('图片大小不能超过 2MB!')
+    return false
   }
   return isJpgOrPng && isLt2M
 }
@@ -114,6 +116,12 @@ const customUpload = async (options: {
   onError: (error: Error) => void
 }) => {
   const { file, onSuccess, onError } = options
+
+  if (!file) {
+    message.error('请选择要上传的头像文件')
+    onError(new Error('请选择要上传的头像文件'))
+    return
+  }
 
   try {
     console.log('开始上传头像，文件信息:', {
@@ -127,15 +135,19 @@ const customUpload = async (options: {
     formData.append('file', file)
 
     // 调用上传API，将 userId 作为 URL 参数传递
-    const res = await uploadUserAvatar({ userId: form.id }, formData)
+    const res = await uploadUserAvatar({ userId: form.id }, formData, {
+      headers: {
+        // 重要：移除默认的 'Content-Type': 'application/json'，让浏览器自动设置为 multipart/form-data
+        'Content-Type': 'multipart/form-data',
+      },
+    })
 
     console.log('上传响应:', res.data)
 
     if (res.data.code === 0 && res.data.data) {
-      // 拼接完整的头像URL
-      const fullAvatarUrl = getFullAvatarUrl(res.data.data)
-      form.userAvatar = fullAvatarUrl
-      onSuccess(fullAvatarUrl)
+      // 更新头像URL
+      form.userAvatar = res.data.data
+      onSuccess(res.data.data)
       message.success('头像上传成功')
     } else {
       onError(new Error(res.data.message))

@@ -118,6 +118,11 @@ const originItems = [
     title: '应用管理',
   },
   {
+    key: '/admin/chatHistoryManage',
+    label: '对话管理',
+    title: '对话管理',
+  },
+  {
     key: 'others',
     label: h(
       'a',

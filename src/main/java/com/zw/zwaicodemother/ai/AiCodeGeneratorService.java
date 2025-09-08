@@ -2,7 +2,9 @@ package com.zw.zwaicodemother.ai;
 
 import com.zw.zwaicodemother.ai.model.HtmlCodeResult;
 import com.zw.zwaicodemother.ai.model.MultiFileCodeResult;
+import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
+import dev.langchain4j.service.UserMessage;
 import reactor.core.publisher.Flux;
 
 
@@ -15,7 +17,9 @@ public interface AiCodeGeneratorService {
      * @return AI 的输出结果
      */
     @SystemMessage(fromResource = "prompt/codegen-html-system-prompt.txt")
-    HtmlCodeResult generateHtmlCode(String userMessage);
+    HtmlCodeResult generateHtmlCode(@MemoryId int memoryId, @UserMessage String userMessage);
+
+
 
     /**
      * 生成多文件代码
