@@ -12,8 +12,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AiResponseMessage extends StreamMessage{
     private String data;
-//    public AiResponseMessage(String data) {
-//        super(StreamMessageTypeEnum.AI_RESPONSE.getValue());
-//        this.data = data;
-//    }
+
+    public AiResponseMessage(String data) {
+        super(StreamMessageTypeEnum.AI_RESPONSE.getValue());
+        this.data = data;
+    }
 }

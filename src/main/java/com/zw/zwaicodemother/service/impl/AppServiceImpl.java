@@ -11,6 +11,7 @@ import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.zw.zwaicodemother.ai.enums.CodeGenTypeEnum;
 import com.zw.zwaicodemother.constant.AppConstant;
 import com.zw.zwaicodemother.core.AiCodeGeneratorFacade;
+import com.zw.zwaicodemother.core.handler.StreamHandlerExecutor;
 import com.zw.zwaicodemother.exception.BusinessException;
 import com.zw.zwaicodemother.exception.ErrorCode;
 import com.zw.zwaicodemother.exception.ThrowUtils;
@@ -57,6 +58,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private ChatHistoryService chatHistoryService;
     @Autowired
     private View error;
+    @Autowired
+    private StreamHandlerExecutor streamHandlerExecutor;
 
     public AppServiceImpl(UserServiceImpl userServiceImpl, AiCodeGeneratorFacade aiCodeGeneratorFacade) {
         this.userServiceImpl = userServiceImpl;
@@ -217,7 +220,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         //   6.调用AI生成代码
         Flux<String> contentFlux =aiCodeGeneratorFacade.generateAndSaveCodeStream(message,codeGenTypeEnum,appId);
         //   7.收集AI响应内容并在完成记录后记录到对话历史
-        StringBuilder  aiResponseBuilder  = new StringBuilder();
+        return streamHandlerExecutor.doExecute(contentFlux,chatHistoryService,
+                appId,loginUser,codeGenTypeEnum);
+        /*StringBuilder  aiResponseBuilder  = new StringBuilder();
         return contentFlux.map(chunk ->{
             //收集AI响应内容
             aiResponseBuilder.append(chunk);
@@ -232,7 +237,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             //如果AI回复失败，也记录到错误消息
             String errorMessage = "AI回复失败：" + error.getMessage();
             chatHistoryService.addChatMessage(appId,errorMessage,ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
-        });
+        });*/
     }
 
     @Override

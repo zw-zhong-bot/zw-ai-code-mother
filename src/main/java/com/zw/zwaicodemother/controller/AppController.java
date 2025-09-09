@@ -74,7 +74,7 @@ public class AppController {
         //应用名称暂时为 initPrompt 前 12 位
         app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 12)));
         // 暂时设置为多文件生成
-        app.setCodeGenType(CodeGenTypeEnum.MULTI_FILE.getValue());
+        app.setCodeGenType(CodeGenTypeEnum.VUE_PROJECT.getValue());
         app.setCreateTime(LocalDateTime.now());
         app.setUpdateTime(LocalDateTime.now());
         // 插入数据库
