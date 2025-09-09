@@ -29,7 +29,8 @@ public class CodeFileSaverExecutor {
     public static File executeSaver(Object codeResult, CodeGenTypeEnum codeGenType  ,Long appId) {
         return switch (codeGenType){
             case HTML -> htmlCodeFileSaverTemplate.saveCode((HtmlCodeResult) codeResult, appId);
-            case  MULTI_FILE -> multiFileCodeFileSaverTemplate.saveCode((MultiFileCodeResult) codeResult, appId);
+            case  MULTI_FILE,VUE_PROJECT
+                    -> multiFileCodeFileSaverTemplate.saveCode((MultiFileCodeResult) codeResult, appId);
             default ->throw  new BusinessException(ErrorCode.SYSTEM_ERROR,"不支持的代码生成类型" + codeGenType);
         };
     }
