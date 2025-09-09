@@ -257,7 +257,14 @@
                 <div class="debug-item">
                   <span class="debug-label">预期路径:</span>
                   <span class="debug-path">{{
-                    `${getStaticBasePath()}/${appDetail?.codeGenType}_${appId}`
+                    (() => {
+                      const codeGenType = appDetail?.codeGenType
+                      let path = `${getStaticBasePath()}/${codeGenType}_${appId}`
+                      if (codeGenType === CodeGenTypeEnum.VUE_PROJECT) {
+                        path += '/dist'
+                      }
+                      return path
+                    })()
                   }}</span>
                 </div>
               </div>
@@ -285,6 +292,7 @@ import {
 } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
 import { getFullResourceUrl, getStaticBasePath, getApiUrl } from '@/config/env'
+import { CodeGenTypeEnum } from '@/constants/codeGenType'
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
@@ -505,7 +513,13 @@ const setupPreviewUrl = async (delay = 2000) => {
     }
 
     const codeGenType = appDetail.value?.codeGenType
-    const generatedUrl = `${getStaticBasePath()}/${codeGenType}_${appId}`
+
+    // 根据代码生成类型判断是否需要添加dist后缀
+    let generatedUrl = `${getStaticBasePath()}/${codeGenType}_${appId}`
+    if (codeGenType === CodeGenTypeEnum.VUE_PROJECT) {
+      generatedUrl += '/dist'
+    }
+
     console.log('Setting preview URL to:', generatedUrl, 'with codeGenType:', codeGenType)
 
     // 尝试多次验证URL，直到可访问或超时

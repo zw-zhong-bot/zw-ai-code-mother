@@ -75,7 +75,6 @@ public class AiCodeGeneratorServiceFactory {
      *
      * @param appId       应用 id
      * @param codeGenType 生成类型
-     * @return
      */
     public AiCodeGeneratorService getAiCodeGeneratorService(long appId, CodeGenTypeEnum codeGenType) {
         String cacheKey = buildCacheKey(appId, codeGenType);
@@ -85,10 +84,10 @@ public class AiCodeGeneratorServiceFactory {
     /**
      * 创建新的 AI 服务实例
      *
-     * @param appId
+     *
      * @param appId       应用 id
      * @param codeGenType 生成类型
-     * @return
+     *
      */
     private AiCodeGeneratorService createAiCodeGeneratorService(Long appId, CodeGenTypeEnum codeGenType) {
         log.info("创建新的 AI 服务实例，appId: {}", appId);

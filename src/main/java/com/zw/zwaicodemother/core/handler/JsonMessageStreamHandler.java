@@ -6,10 +6,13 @@ import cn.hutool.json.JSON;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.zw.zwaicodemother.ai.model.message.*;
+import com.zw.zwaicodemother.constant.AppConstant;
+import com.zw.zwaicodemother.core.builder.VueProjectBuilder;
 import com.zw.zwaicodemother.model.entity.User;
 import com.zw.zwaicodemother.model.enums.ChatHistoryMessageTypeEnum;
 import com.zw.zwaicodemother.service.ChatHistoryService;
 import io.swagger.v3.core.util.Json;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
@@ -24,6 +27,9 @@ import java.util.Set;
 @Slf4j
 @Component
 public class JsonMessageStreamHandler {
+
+    @Resource
+    private VueProjectBuilder vueProjectBuilder;
     /**
      * 处理 TokenStream（VUE_PROJECT）
      * 解析 JSON 消息并重组为完整的响应格式
@@ -50,6 +56,9 @@ public class JsonMessageStreamHandler {
                     //流式响应完成后，添加 AI 消息到对话历史
                     String aiRespomse=chatHistoryStringBuilder.toString();
                     chatHistoryService.addChatMessage(appId,aiRespomse, ChatHistoryMessageTypeEnum.AI.getValue(),loginUser.getId());
+                    //异步构建Vue项目
+                    String projectPath= AppConstant.CODE_OUTPUT_ROOT_DIR+"/vue_project_"+appId;
+                    vueProjectBuilder.buildProjectAsync(projectPath);
                 }).doOnError(error->{
                     String errorMeassage="AI回复失败: "+error.getMessage();
                     chatHistoryService.addChatMessage(appId,errorMeassage, ChatHistoryMessageTypeEnum.AI.getValue(),loginUser.getId());
@@ -72,7 +81,6 @@ public class JsonMessageStreamHandler {
                 chatHistoryStringBuilder.append(data);
                 return data;
             }
-
             case TOOL_REQUEST-> {
                 ToolRequestMessage toolRequestMessage = JSONUtil.toBean(chunk, ToolRequestMessage.class);
                 String toolId = toolRequestMessage.getId();
