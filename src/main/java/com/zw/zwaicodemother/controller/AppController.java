@@ -23,6 +23,7 @@ import com.zw.zwaicodemother.model.entity.App;
 import com.zw.zwaicodemother.model.entity.User;
 import com.zw.zwaicodemother.model.vo.AppVO;
 import com.zw.zwaicodemother.service.AppService;
+import com.zw.zwaicodemother.service.ScreenshotService;
 import com.zw.zwaicodemother.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,6 +52,9 @@ public class AppController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private ScreenshotService screenshotService;
 
     /**
      * 创建应用

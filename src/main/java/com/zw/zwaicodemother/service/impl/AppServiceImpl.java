@@ -25,8 +25,10 @@ import com.zw.zwaicodemother.model.vo.AppVO;
 import com.zw.zwaicodemother.model.vo.UserVO;
 import com.zw.zwaicodemother.service.AppService;
 import com.zw.zwaicodemother.service.ChatHistoryService;
+import com.zw.zwaicodemother.service.ScreenshotService;
 import jakarta.annotation.Resource;
 import lombok.extern.log4j.Log4j2;
+import org.hibernate.validator.internal.constraintvalidators.hv.ScriptAssertValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -60,10 +62,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Resource
     private VueProjectBuilder vueProjectBuilder;
 
-    @Autowired
+    @Resource
     private View error;
-    @Autowired
+    @Resource
     private StreamHandlerExecutor streamHandlerExecutor;
+    @Resource
+    private ScreenshotService screenshotService;
 
     public AppServiceImpl(UserServiceImpl userServiceImpl, AiCodeGeneratorFacade aiCodeGeneratorFacade) {
         this.userServiceImpl = userServiceImpl;
@@ -207,8 +211,11 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         updateApp.setDeployedTime(LocalDateTime.now());
         boolean updateResult = this.updateById(updateApp);
         ThrowUtils.throwIf(!updateResult,ErrorCode.OPERATION_ERROR,"更新应用部署信息失败");
-//        10.返回可访问的URL
-        return String.format("%s/%s/",AppConstant.CODE_DEPLOY_HOST,deployKey);
+//        10.构建应用访问 URL
+        String appDeployUrl=String.format("%s/%s/",AppConstant.CODE_DEPLOY_HOST,deployKey);
+        //11.异步生成截图并更新应用封面
+        generateAppScreenshotAsync(appId, appDeployUrl);
+        return appDeployUrl;
     }
 
     @Override
@@ -346,5 +353,25 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
         }
         return super.removeById(id);
+    }
+    /**
+     * 异步生成应用截图并更新封面
+     *
+     * @param appId  应用ID
+     * @param appUrl 应用访问URL
+     */
+    public void generateAppScreenshotAsync(Long appId, String appUrl) {
+        // 使用虚拟线程异步执行
+        Thread.startVirtualThread(() ->{
+            //// 调用截图服务生成截图并上传
+            String screenshotUrl = screenshotService.generateAndUploadScreenshot(appUrl);
+            // 更新应用封面
+            App updateApp = new App();
+            updateApp.setId(appId);
+            updateApp.setCover(screenshotUrl);
+            updateApp.setUpdateTime(LocalDateTime.now());
+            boolean updateResult = this.updateById(updateApp);
+            ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "更新应用封面字段失败");
+        });
     }
 }
