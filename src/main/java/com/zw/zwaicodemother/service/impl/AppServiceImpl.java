@@ -8,6 +8,7 @@ import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
+import com.zw.zwaicodemother.ai.AiCodeGenTypeRoutingService;
 import com.zw.zwaicodemother.ai.enums.CodeGenTypeEnum;
 import com.zw.zwaicodemother.constant.AppConstant;
 import com.zw.zwaicodemother.core.AiCodeGeneratorFacade;
@@ -17,6 +18,7 @@ import com.zw.zwaicodemother.exception.BusinessException;
 import com.zw.zwaicodemother.exception.ErrorCode;
 import com.zw.zwaicodemother.exception.ThrowUtils;
 import com.zw.zwaicodemother.mapper.AppMapper;
+import com.zw.zwaicodemother.model.dto.app.AppAddRequest;
 import com.zw.zwaicodemother.model.dto.app.AppQueryRequest;
 import com.zw.zwaicodemother.model.entity.App;
 import com.zw.zwaicodemother.model.entity.User;
@@ -28,8 +30,6 @@ import com.zw.zwaicodemother.service.ChatHistoryService;
 import com.zw.zwaicodemother.service.ScreenshotService;
 import jakarta.annotation.Resource;
 import lombok.extern.log4j.Log4j2;
-import org.hibernate.validator.internal.constraintvalidators.hv.ScriptAssertValidator;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.View;
@@ -63,11 +63,11 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private VueProjectBuilder vueProjectBuilder;
 
     @Resource
-    private View error;
-    @Resource
     private StreamHandlerExecutor streamHandlerExecutor;
     @Resource
     private ScreenshotService screenshotService;
+    @Resource
+    private AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService;
 
     public AppServiceImpl(UserServiceImpl userServiceImpl, AiCodeGeneratorFacade aiCodeGeneratorFacade) {
         this.userServiceImpl = userServiceImpl;
@@ -349,11 +349,42 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             chatHistoryService.deleteByAppId(appId);
         }catch (Exception e){
             // 记录日志但不阻止应用删除
-            log.error("删除应用时关联删除对话历史失败",e.getMessage());
-
+            log.error("删除应用时关联删除对话历史失败，应用ID: {}", appId, e);
         }
         return super.removeById(id);
     }
+
+    /**
+     * 创建应用
+     *
+     * @param appAddRequest 应用添加请求
+     * @param loginUser 登录用户
+     * @return 应用ID
+     */
+    @Override
+    public Long createApp(AppAddRequest appAddRequest, User loginUser) {
+        // 1.参数校验
+        String initPrompt = appAddRequest.getInitPrompt();
+        ThrowUtils.throwIf(StrUtil.isBlank(initPrompt),ErrorCode.PARAMS_ERROR,"初始化 prompt 不能为空");
+
+        // 2.创建应用
+        App app = new App();
+        BeanUtil.copyProperties(appAddRequest, app);
+        app.setUserId(loginUser.getId());
+        // 应用名称暂时为 initPrompt 前 12 位
+        app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 12)));
+        //使用AI智能选择代码生成类型
+        CodeGenTypeEnum selectedCodeGenType = aiCodeGenTypeRoutingService.routeCodeGenType(initPrompt);
+        app.setCodeGenType(selectedCodeGenType.getValue());
+        app.setCreateTime(LocalDateTime.now());
+        app.setUpdateTime(LocalDateTime.now());
+        //插入数据库
+        boolean saveResult = this.save(app);
+        ThrowUtils.throwIf(!saveResult, ErrorCode.OPERATION_ERROR, "创建应用失败");
+        log.info("应用创建成功，ID: {}, 类型: {}", app.getId(), selectedCodeGenType.getValue());
+        return app.getId();
+    }
+
     /**
      * 异步生成应用截图并更新封面
      *

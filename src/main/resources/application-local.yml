@@ -8,8 +8,8 @@ langchain4j:
       log-requests: true
       log-responses: true
       max-tokens: 8192
-      strict-json-schema: true
-      response-format: json_object
+#      strict-json-schema: true
+#      response-format: json_object
       timeout: 120s  # 增加超时设置
       temperature: 0.7
     streaming-chat-model: # 新增流式配置

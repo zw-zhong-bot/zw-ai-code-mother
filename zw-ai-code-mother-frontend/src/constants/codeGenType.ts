@@ -23,7 +23,6 @@ export const CODE_GEN_TYPE_OPTIONS = [
     label: 'Vue 项目模式',
     value: CodeGenTypeEnum.VUE_PROJECT,
   },
-
 ] as const
 
 /**
@@ -32,4 +31,5 @@ export const CODE_GEN_TYPE_OPTIONS = [
 export const CODE_GEN_TYPE_MAP = {
   [CodeGenTypeEnum.HTML]: '原生 HTML 模式',
   [CodeGenTypeEnum.MULTI_FILE]: '原生多文件模式',
+  [CodeGenTypeEnum.VUE_PROJECT]: 'Vue 项目模式',
 } as const

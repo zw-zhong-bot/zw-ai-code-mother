@@ -3,6 +3,7 @@ package com.zw.zwaicodemother.service;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
+import com.zw.zwaicodemother.model.dto.app.AppAddRequest;
 import com.zw.zwaicodemother.model.dto.app.AppQueryRequest;
 import com.zw.zwaicodemother.model.entity.App;
 import com.zw.zwaicodemother.model.entity.User;
@@ -62,7 +63,7 @@ public interface AppService extends IService<App> {
      * @param loginUser 登录用户
      * @return 可访问的部署地址
      */
-    public String deployApp(Long appId, User loginUser);
+     String deployApp(Long appId, User loginUser);
 
     /**
      * 上传应用封面
@@ -98,5 +99,14 @@ public interface AppService extends IService<App> {
      * @param appUrl 应用访问URL
      */
     void generateAppScreenshotAsync(Long appId, String appUrl);
+
+    /**
+     * 创建应用
+     *
+     * @param appAddRequest 应用添加请求
+     * @param loginUser 登录用户
+     * @return 应用ID
+     */
+    Long createApp(AppAddRequest appAddRequest, User loginUser);
 
 }

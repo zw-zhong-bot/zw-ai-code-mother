@@ -1,5 +1,13 @@
 <template>
-  <a-card :title="detail?.appName || '应用详情'" style="max-width: 900px; margin: 24px auto">
+  <a-card style="max-width: 900px; margin: 24px auto">
+    <template #title>
+      <div class="card-title">
+        <span class="app-name">{{ detail?.appName || '应用详情' }}</span>
+        <a-tag v-if="detail?.codeGenType" color="blue" class="gen-type-tag">
+          {{ getCodeGenTypeLabel(detail.codeGenType) }}
+        </a-tag>
+      </div>
+    </template>
     <a-descriptions bordered column="1" v-if="detail">
       <a-descriptions-item label="ID">{{ detail.id }}</a-descriptions-item>
       <a-descriptions-item label="封面">
@@ -7,9 +15,15 @@
           :src="getAppCoverUrl(detail?.cover)"
           style="width: 200px; height: 120px; object-fit: cover; border-radius: 8px"
           @error="handleCoverLoadError"
-        />
+         alt=""/>
       </a-descriptions-item>
       <a-descriptions-item label="优先级">{{ detail.priority }}</a-descriptions-item>
+      <a-descriptions-item label="生成类型">
+        <a-tag v-if="detail.codeGenType" color="blue">
+          {{ getCodeGenTypeLabel(detail.codeGenType) }}
+        </a-tag>
+        <span v-else>未设置</span>
+      </a-descriptions-item>
       <a-descriptions-item label="初始提示词">{{ detail.initPrompt }}</a-descriptions-item>
       <a-descriptions-item label="创建时间">{{ detail.createTime }}</a-descriptions-item>
       <a-descriptions-item label="预览">
@@ -25,11 +39,22 @@ import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getAppById } from '@/api/appController.ts'
 import { getAppCoverUrl } from './appCoverUtils'
+import { CODE_GEN_TYPE_MAP } from '@/constants/codeGenType'
 
 const route = useRoute()
 const router = useRouter()
 const id = String(route.params.id as string)
 const detail = ref<API.AppVO | undefined>()
+
+/**
+ * 获取代码生成类型标签
+ * @param codeGenType 代码生成类型
+ * @returns 代码生成类型标签
+ */
+const getCodeGenTypeLabel = (codeGenType: string | undefined): string => {
+  if (!codeGenType) return '未知类型'
+  return CODE_GEN_TYPE_MAP[codeGenType] || codeGenType
+}
 
 /**
  * 获取应用详情
@@ -68,3 +93,22 @@ const handleCoverLoadError = (event: Event) => {
 
 onMounted(fetchDetail)
 </script>
+
+<style scoped>
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.gen-type-tag {
+  font-size: 12px;
+  font-weight: 500;
+}
+</style>

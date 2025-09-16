@@ -5,6 +5,16 @@
       <div class="app-name">{{ appName || `应用 #${appId}` }}</div>
       <div class="topbar-actions">
         <a-button @click="showAppInfo = true" style="margin-right: 12px"> 应用详情 </a-button>
+        <a-button :loading="downloading" @click="doDownloadCode" style="margin-right: 12px">
+          <template #icon>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"
+              />
+            </svg>
+          </template>
+          下载代码
+        </a-button>
         <a-button type="primary" :loading="deploying" @click="doDeploy">
           <template #icon>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -45,6 +55,15 @@
         <div class="info-item">
           <span class="label">优先级：</span>
           <span class="value">{{ appDetail.priority }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">生成类型：</span>
+          <span class="value">
+            <a-tag v-if="appDetail.codeGenType" color="blue">
+              {{ getCodeGenTypeLabel(appDetail.codeGenType) }}
+            </a-tag>
+            <span v-else>未设置</span>
+          </span>
         </div>
         <div v-if="isCurrentUserCreator || isAdmin" class="action-buttons">
           <a-button type="primary" @click="goEdit">
@@ -279,9 +298,15 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, reactive, ref, nextTick, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getAppById, deployApp, deleteMyApp, deleteApp } from '@/api/appController.ts'
+import {
+  getAppById,
+  deployApp,
+  deleteMyApp,
+  deleteApp,
+  downloadAppCode,
+} from '@/api/appController.ts'
 import { listAppChatHistoryByPage } from '@/api/chatHistoryController.ts'
-import { message, Modal, Tooltip } from 'ant-design-vue'
+import { message, Modal } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import {
   UserOutlined,
@@ -292,7 +317,7 @@ import {
 } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
 import { getFullResourceUrl, getStaticBasePath, getApiUrl } from '@/config/env'
-import { CodeGenTypeEnum } from '@/constants/codeGenType'
+import { CodeGenTypeEnum, CODE_GEN_TYPE_MAP } from '@/constants/codeGenType'
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
@@ -308,6 +333,7 @@ const loginUserStore = useLoginUserStore()
 const appName = ref('')
 const sending = ref(false)
 const deploying = ref(false)
+const downloading = ref(false)
 const inputText = ref('')
 const previewUrl = ref('')
 const msgBoxRef = ref<HTMLDivElement>()
@@ -371,6 +397,16 @@ const getFullAvatarUrl = (avatarPath: string): string => {
   if (!avatarPath) return ''
   if (avatarPath.startsWith('http')) return avatarPath
   return getFullResourceUrl(avatarPath)
+}
+
+/**
+ * 获取代码生成类型标签
+ * @param codeGenType 代码生成类型
+ * @returns 代码生成类型标签
+ */
+const getCodeGenTypeLabel = (codeGenType: string | undefined): string => {
+  if (!codeGenType) return '未知类型'
+  return CODE_GEN_TYPE_MAP[codeGenType] || codeGenType
 }
 
 // 头像配置
@@ -687,6 +723,64 @@ const doDeploy = async () => {
     }
   } finally {
     deploying.value = false
+  }
+}
+
+/**
+ * 下载应用代码
+ * 调用后端接口下载ZIP包，处理文件流响应
+ */
+const doDownloadCode = async () => {
+  try {
+    downloading.value = true
+
+    // 直接使用axios调用下载接口，设置响应类型为blob以处理二进制数据
+    const response = await downloadAppCode(
+      { appId: appId as unknown as number },
+      {
+        responseType: 'blob',
+      },
+    )
+
+    // 检查响应是否成功
+    if (response && response.data) {
+      const blob = response.data
+
+      // 从响应头获取文件名，如果没有则使用默认名称
+      let fileName = `app_${appId}_code.zip`
+
+      // 尝试从Content-Disposition头获取文件名
+      const contentDisposition = response.headers['content-disposition']
+      if (contentDisposition) {
+        const fileNameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+        if (fileNameMatch && fileNameMatch[1]) {
+          fileName = fileNameMatch[1].replace(/['"]/g, '')
+        }
+      }
+
+      // 创建下载链接
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = fileName
+
+      // 触发下载
+      document.body.appendChild(link)
+      link.click()
+
+      // 清理资源
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+
+      message.success('代码下载成功')
+    } else {
+      message.error('下载失败，请稍后重试')
+    }
+  } catch (error) {
+    console.error('下载代码失败:', error)
+    message.error('下载失败，请稍后重试')
+  } finally {
+    downloading.value = false
   }
 }
 
@@ -1033,14 +1127,6 @@ onUnmounted(() => {
   gap: 12px;
 }
 
-.msg.user {
-  flex-direction: row-reverse;
-}
-
-.msg.ai {
-  flex-direction: row;
-}
-
 .avatar {
   flex-shrink: 0;
 }
@@ -1231,58 +1317,6 @@ onUnmounted(() => {
 }
 
 /* 代码高亮主题覆盖 - 浅色主题 */
-.msg.ai .bubble .hljs {
-  background: #f8f9fa !important;
-  color: #212529 !important;
-}
-
-.msg.ai .bubble .hljs-keyword {
-  color: #0d6efd !important;
-  font-weight: 600;
-}
-
-.msg.ai .bubble .hljs-string {
-  color: #198754 !important;
-}
-
-.msg.ai .bubble .hljs-comment {
-  color: #6c757d !important;
-  font-style: italic;
-}
-
-.msg.ai .bubble .hljs-function {
-  color: #6f42c1 !important;
-}
-
-.msg.ai .bubble .hljs-number {
-  color: #d63384 !important;
-}
-
-.msg.ai .bubble .hljs-variable {
-  color: #e83e8c !important;
-}
-
-.msg.ai .bubble .hljs-title {
-  color: #6f42c1 !important;
-  font-weight: 600;
-}
-
-.msg.ai .bubble .hljs-attr {
-  color: #fd7e14 !important;
-}
-
-.msg.ai .bubble .hljs-tag {
-  color: #0d6efd !important;
-}
-
-.msg.ai .bubble .hljs-name {
-  color: #0d6efd !important;
-  font-weight: 600;
-}
-
-.msg.ai .bubble .hljs-built_in {
-  color: #20c997 !important;
-}
 
 /* 输入区域 */
 .input-area {
@@ -1583,11 +1617,6 @@ onUnmounted(() => {
 
 .success-icon {
   margin-bottom: 20px;
-}
-
-.success-icon .anticon {
-  font-size: 64px;
-  color: #52c41a;
 }
 
 .success-message {

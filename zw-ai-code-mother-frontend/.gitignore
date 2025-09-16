@@ -30,3 +30,4 @@ coverage
 *.tsbuildinfo
 /.codebuddy/.rules/my-rule.mdc
 /.codebuddy/analysis-summary.json
+/docs/md/

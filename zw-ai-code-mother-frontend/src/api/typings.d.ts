@@ -139,10 +139,6 @@ declare namespace API {
     appId?: number
     userId?: number
     parentId?: number
-    errorMessage?: string
-    errorCode?: string
-    status?: number
-    messageOrder?: number
     createTime?: string
     updateTime?: string
     isDelete?: number
@@ -172,6 +168,10 @@ declare namespace API {
 
   type deleteUserAvatarParams = {
     userId: number
+  }
+
+  type downloadAppCodeParams = {
+    appId: number
   }
 
   type getAppByIdAdminParams = {
