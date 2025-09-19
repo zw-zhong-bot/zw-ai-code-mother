@@ -2,6 +2,7 @@
  * 环境配置
  */
 
+import { CodeGenTypeEnum } from '@/constants/codeGenType'
 // 基础 API 地址
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8123/api'
 

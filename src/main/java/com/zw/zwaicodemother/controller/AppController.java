@@ -23,7 +23,6 @@ import com.zw.zwaicodemother.model.entity.User;
 import com.zw.zwaicodemother.model.vo.AppVO;
 import com.zw.zwaicodemother.service.AppService;
 import com.zw.zwaicodemother.service.ProjectDownloadService;
-import com.zw.zwaicodemother.service.ScreenshotService;
 import com.zw.zwaicodemother.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;

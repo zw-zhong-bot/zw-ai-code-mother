@@ -2,7 +2,27 @@
   <div class="chat-page">
     <!-- 顶部栏 -->
     <div class="topbar">
-      <div class="app-name">{{ appName || `应用 #${appId}` }}</div>
+      <div class="topbar-left">
+        <!-- 返回按钮 -->
+        <button class="back-button" @click="goBack" title="返回主页">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M19 12H5M12 19L5 12L12 5"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
+        <div class="app-name">{{ appName || `应用 #${appId}` }}</div>
+      </div>
       <div class="topbar-actions">
         <a-button @click="showAppInfo = true" style="margin-right: 12px"> 应用详情 </a-button>
         <a-button :loading="downloading" @click="doDownloadCode" style="margin-right: 12px">
@@ -141,12 +161,130 @@
           </div>
 
           <div v-for="m in messages" :key="m.id" class="msg" :class="m.role">
-            <div class="avatar">
-              <img :src="m.role === 'user' ? userAvatar : aiAvatar" :alt="m.role" />
-            </div>
-            <div class="bubble" v-html="m.html"></div>
+            <template v-if="m.role === 'user'">
+              <!-- 用户消息：头像在右侧 -->
+              <div class="bubble" v-html="m.html"></div>
+              <div class="avatar">
+                <img :src="userAvatar" :alt="m.role" />
+              </div>
+            </template>
+            <template v-else>
+              <!-- AI消息：头像在左侧 -->
+              <div class="avatar">
+                <img :src="aiAvatar" :alt="m.role" />
+              </div>
+              <div class="bubble" v-html="m.html"></div>
+            </template>
           </div>
         </div>
+
+        <!-- 选中元素信息显示 -->
+        <div v-if="selectedElements.length > 0" class="selected-elements-info">
+          <div class="selected-elements-header">
+            <span class="selected-count">已选中 {{ selectedElements.length }} 个元素</span>
+            <a-button size="small" type="text" @click="clearSelectedElements"> 清除所有 </a-button>
+          </div>
+          <div class="selected-elements-list">
+            <a-alert
+              v-for="el in selectedElements"
+              :key="el.id"
+              type="info"
+              closable
+              @close="removeSelectedElement(el.id)"
+              class="element-alert"
+            >
+              <template #message>
+                选中元素：{{ (el.tagName || '').toLowerCase()
+                }}{{ el.className ? '.' + el.className : '' }}
+              </template>
+              <template #description>
+                <div>内容：{{ el.textContent || '无' }}</div>
+                <div>选择器：{{ el.selector }}</div>
+              </template>
+            </a-alert>
+          </div>
+        </div>
+
+        <!-- 元素属性侧栏（只读） -->
+        <a-drawer
+          v-if="false"
+          v-model:open="attrPanelOpen"
+          title="元素属性（已停用）"
+          placement="right"
+          width="380px"
+        >
+          <template v-if="activeElementDetail">
+            <a-descriptions size="small" :column="1" bordered>
+              <a-descriptions-item label="标签">{{
+                activeElementDetail.tagName
+              }}</a-descriptions-item>
+              <a-descriptions-item label="类名">{{
+                activeElementDetail.className || '无'
+              }}</a-descriptions-item>
+              <a-descriptions-item label="文本">{{
+                activeElementDetail.textContent || '无'
+              }}</a-descriptions-item>
+              <a-descriptions-item label="XPath">
+                <a-typography-paragraph copyable>{{
+                  activeElementDetail.xpath
+                }}</a-typography-paragraph>
+              </a-descriptions-item>
+              <a-descriptions-item label="CSS选择器">
+                <a-typography-paragraph copyable>{{
+                  activeElementDetail.selector
+                }}</a-typography-paragraph>
+              </a-descriptions-item>
+            </a-descriptions>
+            <div style="margin-top: 12px; font-weight: 600">属性（只读）</div>
+            <a-table
+              size="small"
+              :dataSource="attrRows"
+              :columns="attrColumns"
+              :pagination="false"
+              :rowKey="(r) => r.name"
+            />
+            <!-- 简易编辑区（作者：ZW） -->
+            <div style="margin-top: 12px">
+              <a-space direction="vertical" style="width: 100%">
+                <a-typography-title :level="5" style="margin: 0">编辑</a-typography-title>
+                <a-input v-model:value="editTextInput" placeholder="设置文本内容（innerText）" />
+                <a-space>
+                  <a-input
+                    v-model:value="editAttrName"
+                    placeholder="属性名，例如 title"
+                    style="width: 160px"
+                  />
+                  <a-input
+                    v-model:value="editAttrValue"
+                    placeholder="属性值"
+                    style="width: 160px"
+                  />
+                </a-space>
+                <a-space>
+                  <a-button
+                    type="primary"
+                    size="small"
+                    @click="onApplyTextEdit"
+                    :disabled="!activeElementDetail"
+                    >设置文本</a-button
+                  >
+                  <a-button
+                    size="small"
+                    @click="onApplyAttrEdit"
+                    :disabled="!activeElementDetail || !editAttrName"
+                    >设置属性</a-button
+                  >
+                  <a-divider type="vertical" />
+                  <a-button size="small" @click="onUndo" :disabled="!canUndo">撤销</a-button>
+                  <a-button size="small" @click="onRedo" :disabled="!canRedo">重做</a-button>
+                </a-space>
+              </a-space>
+            </div>
+          </template>
+          <template v-else>
+            <a-empty description="未选中元素" />
+          </template>
+        </a-drawer>
 
         <!-- 用户消息输入框 -->
         <div class="input-area">
@@ -178,9 +316,14 @@
                   <template #icon>📎</template>
                   上传
                 </a-button>
-                <a-button size="small" class="action-btn">
-                  <template #icon>✏️</template>
-                  编辑
+                <a-button
+                  size="small"
+                  class="action-btn"
+                  :type="isEditMode ? 'primary' : 'default'"
+                  @click="toggleEditMode"
+                >
+                  <template #icon>🎨</template>
+                  {{ isEditMode ? '退出编辑' : '可视化编辑' }}
                 </a-button>
                 <a-button size="small" class="action-btn">
                   <template #icon>✨</template>
@@ -239,9 +382,41 @@
         </div>
 
         <div class="preview-content">
-          <div v-if="previewUrl" class="preview-container">
+          <!-- 判断应用是否部署成功 -->
+          <div v-if="appDetail?.deployKey" class="preview-container">
+            <!-- 部署成功的应用显示部署网页地址 -->
             <iframe
-              :src="previewUrl + '?t=' + Date.now()"
+              :src="`/preview/${appDetail.deployKey}/` + '?t=' + Date.now()"
+              class="preview"
+              @load="onIframeLoad"
+              @error="onIframeError"
+              ref="previewIframe"
+            ></iframe>
+            <div class="preview-overlay" v-if="iframeLoading">
+              <div class="loading-content">
+                <div class="loading-icon">⏳</div>
+                <div class="loading-text">正在加载网页...</div>
+              </div>
+            </div>
+          </div>
+          <!-- 应用未部署的情况 -->
+          <div v-else-if="appDetail?.codeGenType === 'VUE_PROJECT'" class="vue-project-notice">
+            <div class="notice-content">
+              <div class="notice-icon">🚀</div>
+              <div class="notice-text">Vue项目请部署后浏览！</div>
+              <div class="notice-desc">Vue项目需要部署后才能正常访问</div>
+            </div>
+          </div>
+          <!-- 其他类型项目且未部署的情况 -->
+          <div v-else-if="previewUrl" class="preview-container">
+            <iframe
+              :src="
+                (previewUrl && PREVIEW_HOST
+                  ? previewUrl.replace(PREVIEW_HOST, '/preview-static')
+                  : previewUrl) +
+                '?t=' +
+                Date.now()
+              "
               class="preview"
               @load="onIframeLoad"
               @error="onIframeError"
@@ -316,11 +491,12 @@ import {
   CopyOutlined,
 } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
-import { getFullResourceUrl, getStaticBasePath, getApiUrl } from '@/config/env'
+import { getFullResourceUrl, getStaticBasePath, getApiUrl, PREVIEW_HOST } from '@/config/env'
 import { CodeGenTypeEnum, CODE_GEN_TYPE_MAP } from '@/constants/codeGenType'
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
+import { useVisualEditor } from '@/composables/useVisualEditor'
 
 const route = useRoute()
 const router = useRouter()
@@ -330,7 +506,25 @@ const initText = (route.query.init as string) || ''
 
 const loginUserStore = useLoginUserStore()
 
+// 使用可视化编辑功能
+const {
+  isEditMode,
+  selectedElements,
+  toggleEditMode,
+  removeSelectedElement,
+  clearSelectedElements,
+  setIframeRef,
+  generatePromptWithElements,
+  getSelectedElementsSummary,
+  exitEditMode,
+  hoveredElement,
+  activeElement,
+} = useVisualEditor()
+
 const appName = ref('')
+
+/* 元素属性侧栏已停用，保留占位避免大范围改动 */
+const attrPanelOpen = ref(false)
 const sending = ref(false)
 const deploying = ref(false)
 const downloading = ref(false)
@@ -354,6 +548,19 @@ const lastCreateTime = ref<string>('')
 const iframeLoading = ref(false)
 const previewIframe = ref<HTMLIFrameElement>()
 
+// 监听编辑模式切换，向 iframe 下发启用/关闭编辑指令（作者：ZW）
+// 功能：在用户点击“可视化编辑”或“退出编辑”时，通知 iframe 进入/退出编辑状态
+// 参数：val - 当前编辑模式布尔值
+// 返回值：void
+// 异常：无
+watch(isEditMode, (val) => {
+  const childWin = previewIframe.value?.contentWindow
+  const port: MessagePort | undefined = (window as any).__visualEditorPort
+  const payload = { type: val ? 'enable-edit-mode' : 'disable-edit-mode', source: 'visual-editor' }
+  if (port) port.postMessage(payload)
+  else childWin?.postMessage(payload, '*')
+})
+
 // 监听previewUrl的变化
 watch(previewUrl, (newUrl, oldUrl) => {
   console.log('previewUrl changed:', { oldUrl, newUrl })
@@ -362,6 +569,13 @@ watch(previewUrl, (newUrl, oldUrl) => {
     console.log('✅ Preview URL successfully set:', newUrl)
     // 开始加载iframe
     iframeLoading.value = true
+    // 兜底：若 3 秒内未触发 onload，强制隐藏 overlay，避免遮住 iframe（作者：ZW）
+    setTimeout(() => {
+      if (iframeLoading.value) {
+        console.warn('iframe overlay fallback: forcing hide after 3s without onload')
+        iframeLoading.value = false
+      }
+    }, 3000)
 
     // 验证URL是否真的可以访问
     fetch(newUrl, { method: 'HEAD', cache: 'no-cache' })
@@ -406,7 +620,7 @@ const getFullAvatarUrl = (avatarPath: string): string => {
  */
 const getCodeGenTypeLabel = (codeGenType: string | undefined): string => {
   if (!codeGenType) return '未知类型'
-  return CODE_GEN_TYPE_MAP[codeGenType] || codeGenType
+  return CODE_GEN_TYPE_MAP[codeGenType as keyof typeof CODE_GEN_TYPE_MAP] || codeGenType
 }
 
 // 头像配置
@@ -439,6 +653,77 @@ const md: MarkdownIt = new MarkdownIt({
 
 type Msg = { id: number; role: 'user' | 'ai'; html: string }
 const messages = reactive<Msg[]>([])
+
+// 计算当前激活元素详情（只读）
+// 功能：根据 activeElement 从 selectedElements 中取出完整元素信息
+// 参数：无
+// 返回值：选中元素的详细信息或 null
+// 异常：无
+// 作者：ZW
+const activeElementDetail = computed(() => {
+  if (!activeElement?.value) return null
+  return selectedElements.find((el) => el.id === activeElement.value) || null
+})
+
+// 属性表格列与数据（只读展示）
+// 作者：ZW
+const attrColumns = [
+  { title: '名称', dataIndex: 'name', key: 'name', width: '40%' },
+  { title: '值', dataIndex: 'value', key: 'value' },
+]
+const attrRows = computed(() => {
+  const el = activeElementDetail.value
+  if (!el) return []
+  const entries = Object.entries(el.attributes || {})
+  return entries.map(([name, value]) => ({ name, value }))
+})
+/**
+ * 可编辑区状态与撤销/重做（作者：ZW）
+ * 说明：通过 window.__veOps 维护简单操作栈，避免组件重建导致状态丢失
+ */
+const editTextInput = ref('') // 编辑文本输入
+const editAttrName = ref('') // 编辑的属性名
+const editAttrValue = ref('') // 编辑的属性值
+
+if (!(window as any).__veOps) {
+  ;(window as any).__veOps = { stack: [] as any[], index: -1 }
+}
+const canUndo = computed(() => {
+  const ops = (window as any).__veOps as { stack: any[]; index: number }
+  return ops.index >= 0
+})
+const canRedo = computed(() => {
+  const ops = (window as any).__veOps as { stack: any[]; index: number }
+  return ops.index < ops.stack.length - 1
+})
+
+/**
+ * 监听来自 iframe 的编辑操作确认（作者：ZW）
+ * 功能：接收 iframe 回传的 op-applied，维护撤销栈
+ * 参数：e MessageEvent
+ * 返回值：void
+ * 异常：无
+ */
+const onVeOperationAck = (e: MessageEvent): void => {
+  const data: any = (e && (e as any).data) || null
+  if (!data || (data.source !== 'visual-editor-iframe' && data.source !== 'visual-editor')) return
+  if (data.type !== 'op-applied') return
+  const op = {
+    opId: String(data.opId || Date.now()),
+    kind: String(data.kind || 'unknown'),
+    xpath: String(data.xpath || (activeElementDetail.value ? activeElementDetail.value.xpath : '')),
+    name: data.name || null,
+    newValue: data.newValue,
+    prevValue: data.prevValue,
+  }
+  const ops = (window as any).__veOps as { stack: any[]; index: number }
+  if (ops.index < ops.stack.length - 1) {
+    ops.stack = ops.stack.slice(0, ops.index + 1)
+  }
+  ops.stack.push(op)
+  ops.index = ops.stack.length - 1
+}
+
 let eventSource: EventSource | null = null
 
 const scrollToBottom = async () => {
@@ -600,8 +885,12 @@ const setupPreviewUrl = async (delay = 2000) => {
 
 const sendMsg = async () => {
   if (!inputText.value.trim()) return
+
+  // 生成包含选中元素信息的完整提示词
+  const finalMessage = generatePromptWithElements(inputText.value)
+
   const userId = Date.now()
-  // 对用户消息也进行markdown解析
+  // 对用户消息也进行markdown解析（显示原始消息）
   const userHtml = handleSSE(inputText.value)
   messages.push({ id: userId, role: 'user', html: userHtml })
   await scrollToBottom()
@@ -616,9 +905,16 @@ const sendMsg = async () => {
   previewUrlSetupPromise.value = null
 
   const url = getApiUrl(
-    `/app/chat/gen/code?appId=${encodeURIComponent(appId)}&message=${encodeURIComponent(inputText.value)}`,
+    `/app/chat/gen/code?appId=${encodeURIComponent(appId)}&message=${encodeURIComponent(finalMessage)}`,
   )
+
+  // 清空输入框
   inputText.value = ''
+
+  // 发送消息后清除选中元素并退出编辑模式
+  if (isEditMode.value) {
+    exitEditMode()
+  }
   eventSource?.close()
   eventSource = new EventSource(url, { withCredentials: true })
 
@@ -819,6 +1115,215 @@ const openInNewWindow = () => {
 const onIframeLoad = () => {
   console.log('✅ Iframe loaded successfully')
   iframeLoading.value = false
+
+  // 设置iframe引用用于可视化编辑
+  if (previewIframe.value) {
+    setIframeRef(previewIframe.value)
+
+    // 注入可视化编辑脚本到iframe
+    injectVisualEditorScript()
+  }
+}
+
+/**
+ * 向iframe注入可视化编辑脚本
+ */
+const injectVisualEditorScript = () => {
+  if (!previewIframe.value?.contentWindow) {
+    return
+  }
+
+  try {
+    const iframeDoc =
+      previewIframe.value.contentDocument || previewIframe.value.contentWindow.document
+
+    // 父页与 iframe 的 MessageChannel 桥接（作者：ZW）
+    const childWin = previewIframe.value?.contentWindow
+    const setupMessageChannel = (win: Window | null) => {
+      if (!win) return
+      if ((window as any).__visualEditorPort) return
+      const channel = new MessageChannel()
+      const port1: MessagePort = channel.port1
+      ;(window as any).__visualEditorPort = port1
+      // 将专用 port 的消息桥接到 window 的 message 事件，复用既有 handler
+      port1.onmessage = (e) => {
+        window.dispatchEvent(new MessageEvent('message', { data: e.data }))
+      }
+      try {
+        win.postMessage({ type: 'init-port', source: 'visual-editor' }, '*', [channel.port2])
+      } catch (err) {
+        console.warn('Failed to transfer MessagePort to iframe:', err)
+      }
+    }
+
+    // 检查是否已经注入过脚本
+    if (iframeDoc.getElementById('visual-editor-script')) {
+      // 已注入：建立通道并在编辑模式下立即启用
+      setupMessageChannel(childWin)
+      if (isEditMode.value) {
+        const port: MessagePort | undefined = (window as any).__visualEditorPort
+        const payload = { type: 'enable-edit-mode', source: 'visual-editor' }
+        console.log('[VE] send enable-edit-mode (already injected)', {
+          via: port ? 'MessagePort' : 'postMessage',
+        })
+        if (port) port.postMessage(payload)
+        else childWin?.postMessage(payload, '*')
+      }
+      return
+    }
+
+    // 创建并注入外链脚本（同源路径，规避跨域与 CSP 内联限制）
+    const script = iframeDoc.createElement('script')
+    script.id = 'visual-editor-script'
+    script.type = 'text/javascript'
+    script.src = '/visual-editor-injector.js'
+    script.onload = () => {
+      console.log('Visual editor script loaded successfully')
+      // 脚本加载完成后建立专用通道，并在编辑模式下立即下发启用指令（作者：ZW）
+      setupMessageChannel(childWin)
+      if (isEditMode.value) {
+        const port: MessagePort | undefined = (window as any).__visualEditorPort
+        const payload = { type: 'enable-edit-mode', source: 'visual-editor' }
+        console.log('[VE] send enable-edit-mode (after script onload)', {
+          via: port ? 'MessagePort' : 'postMessage',
+        })
+        if (port) port.postMessage(payload)
+        else childWin?.postMessage(payload, '*')
+      }
+    }
+    script.onerror = () => {
+      console.error('Failed to load visual editor script')
+      // 注入失败 UI 提示：可能原因与排查建议
+      message.error(
+        '可视化编辑器脚本加载失败：请检查是否与预览同源、CSP 是否拦截、代理是否生效、/preview(-static) 路径是否正确',
+      )
+    }
+    iframeDoc.head.appendChild(script)
+    console.log('Visual editor script tag appended')
+  } catch (error) {
+    console.error('Failed to inject visual editor script:', error)
+    // 注入失败 UI 提示：跨域/CSP/代理问题定位
+    message.error(
+      '注入可视化编辑器失败：常见原因是跨域或 CSP 限制，或代理未生效。请在 Network 中检查 /visual-editor-injector.js 是否 200 成功',
+    )
+  }
+}
+
+/**
+ * 发送编辑文本指令到 iframe（作者：ZW）
+ * 功能：请求在 iframe 内将元素文本（innerText）修改为指定内容
+ * 参数：无
+ * 返回值：void
+ * 异常：无（异常通过 console.error 打印）
+ */
+const onApplyTextEdit = (): void => {
+  if (!activeElementDetail.value) return
+  const payload = {
+    type: 'edit-text',
+    source: 'visual-editor',
+    opId: String(Date.now()),
+    xpath: activeElementDetail.value.xpath,
+    text: editTextInput.value || '',
+    kind: 'edit-text',
+  }
+  const childWin = previewIframe.value?.contentWindow
+  const port: MessagePort | undefined = (window as any).__visualEditorPort
+  if (port) port.postMessage(payload)
+  else childWin?.postMessage(payload, '*')
+}
+
+/**
+ * 发送编辑属性指令到 iframe（作者：ZW）
+ * 功能：请求在 iframe 内将指定元素的属性设置为新值
+ * 参数：无
+ * 返回值：void
+ * 异常：无（异常通过 console.error 打印）
+ */
+const onApplyAttrEdit = (): void => {
+  if (!activeElementDetail.value || !editAttrName.value) return
+  const payload = {
+    type: 'edit-attribute',
+    source: 'visual-editor',
+    opId: String(Date.now()),
+    xpath: activeElementDetail.value.xpath,
+    name: editAttrName.value,
+    value: editAttrValue.value || '',
+    kind: 'edit-attribute',
+  }
+  const childWin = previewIframe.value?.contentWindow
+  const port: MessagePort | undefined = (window as any).__visualEditorPort
+  if (port) port.postMessage(payload)
+  else childWin?.postMessage(payload, '*')
+}
+
+/**
+ * 撤销（作者：ZW）
+ * 功能：根据操作栈回退上一次 DOM 编辑（文本/属性）
+ * 参数：无
+ * 返回值：void
+ * 异常：无
+ */
+const onUndo = (): void => {
+  const ops = (window as any).__veOps as { stack: any[]; index: number }
+  if (ops.index < 0) return
+  const op = ops.stack[ops.index]
+  ops.index -= 1
+  const childWin = previewIframe.value?.contentWindow
+  const port: MessagePort | undefined = (window as any).__visualEditorPort
+  const payload =
+    op.kind === 'edit-text'
+      ? {
+          type: 'apply-op',
+          source: 'visual-editor',
+          xpath: op.xpath,
+          kind: 'edit-text',
+          text: String(op.prevValue ?? ''),
+        }
+      : {
+          type: 'apply-op',
+          source: 'visual-editor',
+          xpath: op.xpath,
+          kind: 'edit-attribute',
+          name: op.name,
+          value: String(op.prevValue ?? ''),
+        }
+  if (port) port.postMessage(payload)
+  else childWin?.postMessage(payload, '*')
+}
+
+/**
+ * 重做（作者：ZW）
+ * 功能：根据操作栈重做下一步 DOM 编辑（文本/属性）
+ * 参数：无
+ * 返回值：void
+ * 异常：无
+ */
+const onRedo = (): void => {
+  const ops = (window as any).__veOps as { stack: any[]; index: number }
+  if (ops.index >= ops.stack.length - 1) return
+  const op = ops.stack[ops.index + 1]
+  ops.index += 1
+  const childWin = previewIframe.value?.contentWindow
+  const port: MessagePort | undefined = (window as any).__visualEditorPort
+  const payload =
+    op.kind === 'edit-text'
+      ? {
+          type: 'apply-op',
+          source: 'visual-editor',
+          xpath: op.xpath,
+          kind: 'edit-text',
+          text: String(op.newValue ?? ''),
+        }
+      : {
+          type: 'apply-op',
+          source: 'visual-editor',
+          xpath: op.xpath,
+          kind: 'edit-attribute',
+          name: op.name,
+          value: String(op.newValue ?? ''),
+        }
+  if (port) port.postMessage(payload)
+  else childWin?.postMessage(payload, '*')
 }
 
 // iframe加载错误事件
@@ -972,6 +1477,18 @@ const handleUpload = () => {
   message.info('文件上传功能开发中...')
 }
 
+/**
+ * 返回主页
+ * 功能：顶部返回按钮点击时触发，导航至应用首页。
+ * 参数：无
+ * 返回值：void
+ * 异常：若路由系统异常，Vue Router 会在内部处理；此方法不抛出异常。
+ * 作者：ZW
+ */
+const goBack = (): void => {
+  router.push('/')
+}
+
 // 重写fetchApp函数，整合权限校验
 const fetchApp = async () => {
   await fetchAppDetail()
@@ -984,7 +1501,40 @@ watch(showAppInfo, async (newVal) => {
   }
 })
 
+/**
+ * 键盘快捷键处理
+ * 功能：编辑模式下支持 Esc 退出、Delete/Backspace 取消当前激活元素选中
+ * 参数：e KeyboardEvent
+ * 返回值：void
+ * 异常：无
+ * 作者：ZW
+ */
+const onKeyDownHandler = (e: KeyboardEvent): void => {
+  if (!isEditMode.value) return
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    exitEditMode()
+  }
+}
+
 onMounted(async () => {
+  // 绑定快捷键
+  window.addEventListener('keydown', onKeyDownHandler)
+  // 绑定编辑确认消息监听（作者：ZW）
+  window.addEventListener('message', onVeOperationAck)
+
+  // 侧边栏已停用，这里不再自动开关
+
+  // 预加载可视化编辑注入脚本，减少首次注入的网络等待（作者：ZW）
+  const existedPreload = document.querySelector('link[data-ve-preload]')
+  if (!existedPreload) {
+    const link = document.createElement('link')
+    link.rel = 'preload'
+    link.as = 'script'
+    link.href = '/visual-editor-injector.js'
+    link.setAttribute('data-ve-preload', '1')
+    document.head.appendChild(link)
+  }
   await fetchApp()
   // 加载对话历史
   await loadChatHistory()
@@ -1005,6 +1555,10 @@ onUnmounted(() => {
   eventSource?.close()
   // 清理消息缓存
   msgBuffer.clear()
+  // 解绑快捷键
+  window.removeEventListener('keydown', onKeyDownHandler)
+  // 解绑编辑确认消息监听（作者：ZW）
+  window.removeEventListener('message', onVeOperationAck)
 })
 </script>
 
@@ -1028,6 +1582,37 @@ onUnmounted(() => {
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   flex-shrink: 0;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.back-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.back-button:hover {
+  border-color: #667eea;
+  color: #667eea;
+  background: #f8faff;
+  transform: translateX(-2px);
+}
+
+.back-button:active {
+  transform: translateX(-1px);
 }
 
 .app-name {
@@ -1125,6 +1710,15 @@ onUnmounted(() => {
   display: flex;
   align-items: flex-start;
   gap: 12px;
+}
+
+.msg.user {
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+}
+
+.msg.ai {
+  flex-direction: row;
 }
 
 .avatar {
@@ -1508,6 +2102,87 @@ onUnmounted(() => {
 .empty-desc {
   font-size: 14px;
   color: #6b7280;
+}
+
+/* Vue项目提示样式 */
+.vue-project-notice {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f9fafb;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+.notice-content {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.notice-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.notice-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #f59e0b;
+  margin-bottom: 8px;
+}
+
+.notice-desc {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* 选中元素信息显示样式 */
+.selected-elements-info {
+  padding: 16px 20px;
+  background: #f8faff;
+  border-top: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.selected-elements-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.selected-count {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1890ff;
+}
+
+.selected-elements-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.element-alert {
+  margin: 0;
+}
+
+.element-alert .ant-alert-message {
+  font-size: 13px;
+  font-family: 'Monaco', 'Consolas', monospace;
+}
+
+/* 可视化编辑按钮样式 */
+.action-btn[type='primary'] {
+  background: #1890ff;
+  border-color: #1890ff;
+  color: white;
+}
+
+.action-btn[type='primary']:hover {
+  background: #40a9ff;
+  border-color: #40a9ff;
 }
 
 /* 调试信息样式 */

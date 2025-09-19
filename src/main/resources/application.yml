@@ -6,6 +6,10 @@ spring:
     store-type: redis
     # session 30 天过期
     timeout: 2592000
+  web:
+    resources:
+      static-locations: classpath:/META-INF/resources/,classpath:/resources/,classpath:/static/,classpath:/public/,file:./tmp/
+
 #    激活本地环境
   profiles:
       active: local

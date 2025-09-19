@@ -3,7 +3,6 @@ package com.zw.zwaicodemother.manager;
 import com.zw.zwaicodemother.common.WebScreenshotUtils;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -278,7 +277,7 @@ public class ScreenshotManager {
      * @param failedTasks    -- GETTER --
      *                       获取失败任务数
      */
-        @Getter
+
         public record TaskStatistics(long totalTasks, int completedTasks, int failedTasks) {
         /**
          * 构造任务统计信息
