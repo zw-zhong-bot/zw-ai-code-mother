@@ -19,19 +19,6 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
-      // 将部署产物同源代理为 /preview/{deployKey}/...
-      '/preview': {
-        target: 'http://localhost',
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/preview/, ''),
-      },
-      // 将预览静态资源同源代理为 /preview-static/...
-      '/preview-static': {
-        target: 'http://localhost:8123',
-        changeOrigin: true,
-        secure: false,
-      },
     },
   },
 })

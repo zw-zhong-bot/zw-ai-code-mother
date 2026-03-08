@@ -3,7 +3,7 @@
 import request from '@/request'
 
 /** 此处后端没有提供注释 POST /chatHistory/admin/list/page/vo */
-export async function listChatHistoryByPage(
+export async function listAllChatHistoryByPageForAdmin(
   body: API.ChatHistoryQueryRequest,
   options?: { [key: string]: any }
 ) {
@@ -18,9 +18,9 @@ export async function listChatHistoryByPage(
 }
 
 /** 此处后端没有提供注释 GET /chatHistory/app/${param0} */
-export async function listAppChatHistoryByPage(
+export async function listAppChatHistory(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
-  params: API.listAppChatHistoryByPageParams,
+  params: API.listAppChatHistoryParams,
   options?: { [key: string]: any }
 ) {
   const { appId: param0, ...queryParams } = params

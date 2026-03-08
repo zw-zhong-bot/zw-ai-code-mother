@@ -3,7 +3,7 @@ package com.zw.zwaicodemother.ai;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.zw.zwaicodemother.ai.enums.CodeGenTypeEnum;
-import com.zw.zwaicodemother.ai.tool.FileWriteTool;
+import com.zw.zwaicodemother.ai.tool.*;
 import com.zw.zwaicodemother.exception.BusinessException;
 import com.zw.zwaicodemother.exception.ErrorCode;
 import com.zw.zwaicodemother.service.ChatHistoryService;
@@ -46,6 +46,9 @@ public class AiCodeGeneratorServiceFactory {
 
     @Resource
     private ChatHistoryService chatHistoryService;
+
+    @Resource
+    private ToolManager toolManager;
 
     /**
      * AI 服务实例缓存
@@ -103,13 +106,14 @@ public class AiCodeGeneratorServiceFactory {
         // 根据代码生成类型选择不同的模型配置
         return switch (codeGenType){
             // Vue 项目生成，使用工具调用和推理模型
+            // Vue 项目生成使用推理模型
             case VUE_PROJECT -> AiServices.builder(AiCodeGeneratorService.class)
                     .streamingChatModel(reasoningStreamingChatModel)
-                    .chatMemoryProvider(memoryId->chatMemory)
-                    .tools(new FileWriteTool())
+                    .chatMemoryProvider(memoryId -> chatMemory)
+                    .tools(toolManager.getAllTools())
                     // 处理工具调用幻觉问题
                     .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
-                            toolExecutionRequest,"Error:there in not tool called"+toolExecutionRequest.name()
+                            toolExecutionRequest, "Error: there is no tool called " + toolExecutionRequest.name()
                     ))
                     .build();
             // HTML 和 多文件生成，使用流式对话模型
@@ -143,4 +147,5 @@ public class AiCodeGeneratorServiceFactory {
     private String buildCacheKey(long appId, CodeGenTypeEnum codeGenType) {
         return appId + "_" + codeGenType.getValue();
     }
+
 }

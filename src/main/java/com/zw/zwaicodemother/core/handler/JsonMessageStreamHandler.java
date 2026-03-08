@@ -6,6 +6,8 @@ import cn.hutool.json.JSON;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.zw.zwaicodemother.ai.model.message.*;
+import com.zw.zwaicodemother.ai.tool.BaseTool;
+import com.zw.zwaicodemother.ai.tool.ToolManager;
 import com.zw.zwaicodemother.constant.AppConstant;
 import com.zw.zwaicodemother.core.builder.VueProjectBuilder;
 import com.zw.zwaicodemother.model.entity.User;
@@ -30,6 +32,9 @@ public class JsonMessageStreamHandler {
 
     @Resource
     private VueProjectBuilder vueProjectBuilder;
+
+    @Resource
+    private ToolManager toolManager;
     /**
      * 处理 TokenStream（VUE_PROJECT）
      * 解析 JSON 消息并重组为完整的响应格式
@@ -84,38 +89,28 @@ public class JsonMessageStreamHandler {
             case TOOL_REQUEST-> {
                 ToolRequestMessage toolRequestMessage = JSONUtil.toBean(chunk, ToolRequestMessage.class);
                 String toolId = toolRequestMessage.getId();
+                String toolName = toolRequestMessage.getName();
                 //判断是否是第一次调用
                 if (toolId != null && !seenToolIds.contains(toolId)) {
                     //第一次调用这个工具，记录ID并完整返回工具信息
                     seenToolIds.add(toolId);
-                    return "\n\n[选择工具] 写入文件\n\n";
+                    //根据工具名称获取工具实例
+                    BaseTool tool=toolManager.getTool(toolName);
+                    //返回格式化的工具调用信息
+                    return tool.generateToolRequestResponse();
                 } else {
                     //不是第一次调用，只返回工具ID
                     return null;
                 }
             }
             case TOOL_EXECUTED-> {
-                ToolExecutedMessage toolExecutedMessage = JSONUtil.toBean(chunk,ToolExecutedMessage.class);
-                String arguments = toolExecutedMessage.getArguments();
-                if (StrUtil.isBlank(arguments) || !JSONUtil.isTypeJSONObject(arguments)) {
-                    log.warn("工具执行参数格式异常: {}", arguments);
-                    return null;
-                }
-                JSONObject jsonObject = JSONUtil.parseObj(arguments);
-                String relativeFilePath = jsonObject.getStr("relativeFilePath");
-                String content = jsonObject.getStr("content");
-                if (StrUtil.isBlank(relativeFilePath) || StrUtil.isBlank(content)) {
-                    log.warn("工具执行参数缺失必要字段: {}", arguments);
-                    return null;
-                }
-                String suffix = FileUtil.getSuffix(relativeFilePath);
-                String result = String.format("""
-                         [工具调用] 写入文件 %s
-                        ```%s
-                        %s
-                        ```
-                        """, relativeFilePath, suffix, content);
-                //输出前端和要持久化的内容
+                ToolExecutedMessage toolExecutedMessage = JSONUtil.toBean(chunk, ToolExecutedMessage.class);
+                JSONObject jsonObject = JSONUtil.parseObj(toolExecutedMessage.getArguments());
+                // 根据工具名称获取工具实例
+                String toolName = toolExecutedMessage.getName();
+                BaseTool tool = toolManager.getTool(toolName);
+                String result = tool.generateToolExecutedResult(jsonObject);
+                // 输出前端和要持久化的内容
                 String output = String.format("\n\n%s\n\n", result);
                 chatHistoryStringBuilder.append(output);
                 return output;

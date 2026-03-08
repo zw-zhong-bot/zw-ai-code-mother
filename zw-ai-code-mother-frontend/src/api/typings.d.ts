@@ -1,25 +1,13 @@
 declare namespace API {
-  type App = {
+  type AppAddRequest = {
+    initPrompt?: string
+  }
+
+  type AppAdminUpdateRequest = {
     id?: number
     appName?: string
     cover?: string
-    initPrompt?: string
-    codeGenType?: string
-    deployKey?: string
-    deployedTime?: string
     priority?: number
-    userId?: number
-    editTime?: string
-    createTime?: string
-    updateTime?: string
-    isDelete?: number
-  }
-
-  type AppAddRequest = {
-    appName?: string
-    cover?: string
-    initPrompt?: string
-    codeGenType?: string
   }
 
   type AppDeployRequest = {
@@ -44,10 +32,6 @@ declare namespace API {
   type AppUpdateRequest = {
     id?: number
     appName?: string
-    cover?: string
-    initPrompt?: string
-    codeGenType?: string
-    priority?: number
   }
 
   type AppVO = {
@@ -60,16 +44,9 @@ declare namespace API {
     deployedTime?: string
     priority?: number
     userId?: number
-    editTime?: string
     createTime?: string
     updateTime?: string
     user?: UserVO
-  }
-
-  type BaseResponseApp = {
-    code?: number
-    data?: App
-    message?: string
   }
 
   type BaseResponseAppVO = {
@@ -138,7 +115,6 @@ declare namespace API {
     messageType?: string
     appId?: number
     userId?: number
-    parentId?: number
     createTime?: string
     updateTime?: string
     isDelete?: number
@@ -166,28 +142,16 @@ declare namespace API {
     id?: number
   }
 
-  type deleteUserAvatarParams = {
-    userId: number
-  }
-
   type downloadAppCodeParams = {
     appId: number
   }
 
-  type getAppByIdAdminParams = {
+  type getAppVOByIdByAdminParams = {
     id: number
   }
 
-  type getAppByIdParams = {
+  type getAppVOByIdParams = {
     id: number
-  }
-
-  type getAppCoverParams = {
-    appId: number
-  }
-
-  type getUserAvatarParams = {
-    userId: number
   }
 
   type getUserByIdParams = {
@@ -198,7 +162,7 @@ declare namespace API {
     id: number
   }
 
-  type listAppChatHistoryByPageParams = {
+  type listAppChatHistoryParams = {
     appId: number
     pageSize?: number
     lastCreateTime?: string
@@ -242,26 +206,10 @@ declare namespace API {
     optimizeCountQuery?: boolean
   }
 
-  type serveAvatarFileParams = {
-    fileName: string
-  }
-
-  type serveCoverFileParams = {
-    fileName: string
-  }
-
   type ServerSentEventString = true
 
   type serveStaticResourceParams = {
     deployKey: string
-  }
-
-  type uploadAppCoverParams = {
-    appId: number
-  }
-
-  type uploadUserAvatarParams = {
-    userId?: number
   }
 
   type User = {
@@ -276,11 +224,6 @@ declare namespace API {
     createTime?: string
     updateTime?: string
     isDelete?: number
-    vipExpireTime?: string
-    vipCode?: string
-    vipNumber?: number
-    shareCode?: string
-    inviteUser?: number
   }
 
   type UserAddRequest = {

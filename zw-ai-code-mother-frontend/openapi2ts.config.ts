@@ -1,6 +1,4 @@
-/*
- * 注意，要将schemaPath改为自己后端服务提供的 Swagger 接口文档的地址，生成前确保后端已启动！
- * */
+// 根据后端接口生成前端请求和 TS 模型代码
 export default {
   requestLibPath: "import request from '@/request'",
   schemaPath: 'http://localhost:8123/api/v3/api-docs',
