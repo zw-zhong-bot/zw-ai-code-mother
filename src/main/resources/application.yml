@@ -65,3 +65,7 @@ cos:
 # 可选配置：如果希望yml也能引用这个变量
 #custom:
 #  api-key: ${DEEPSEEK_API_KEY:NOT_SET_IN_YAML}
+
+# Pexels 图片搜索配置
+pexels:
+  api-key: ${Pexels:NOT_SET_IN_YAML}
