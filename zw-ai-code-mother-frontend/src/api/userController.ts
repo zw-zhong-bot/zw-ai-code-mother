@@ -1,3 +1,4 @@
+// eslint-disable-next-line
 // @ts-ignore
 /* eslint-disable */
 import request from '@/request'

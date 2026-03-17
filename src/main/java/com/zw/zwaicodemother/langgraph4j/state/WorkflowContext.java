@@ -72,6 +72,7 @@ public class WorkflowContext implements Serializable {
      */
     private String errorMessage;
 
+
     @Serial
     private static final long serialVersionUID = 1L;
 

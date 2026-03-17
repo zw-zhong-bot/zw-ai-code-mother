@@ -1,9 +1,15 @@
 package com.zw.zwaicodemother.langgraph4j.node;
 
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.StrUtil;
+import com.zw.zwaicodemother.langgraph4j.model.ImageResource;
 import com.zw.zwaicodemother.langgraph4j.state.WorkflowContext;
+import io.micrometer.common.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.action.AsyncNodeAction;
 import org.bsc.langgraph4j.prebuilt.MessagesState;
+
+import java.util.List;
 
 import static org.bsc.langgraph4j.action.AsyncNodeAction.node_async;
 
@@ -17,16 +23,43 @@ public class PromptEnhancerNode {
         return node_async(state -> {
             WorkflowContext context = WorkflowContext.getContext(state);
             log.info("执行节点: 提示词增强");
-            
-            // TODO: 实际执行提示词增强逻辑
-            
+
+            // 获取原始提示词和图片列表
+            String originalPrompt = context.getOriginalPrompt();
+            String imageListStr = context.getImageListStr();
+            List<ImageResource> imageList = context.getImageList();
+            //构建增强后的提示词
+            StringBuffer enhancedPromptBuilder  = new StringBuffer();
+            enhancedPromptBuilder.append(originalPrompt);
+            //如果有图片资源，则添加图片信息
+            if (CollUtil.isNotEmpty(imageList)|| StrUtil.isNotBlank(imageListStr)){
+                enhancedPromptBuilder.append("\\n\\n## 可用素材资源\\n\");\n");
+                enhancedPromptBuilder.append("请在生成网站使用以下图片资源，将这些图片合理地嵌入到网站的相应位置中。\\n\"");
+                if (CollUtil.isNotEmpty(imageList)){
+                    for (ImageResource imageResource : imageList) {
+                        enhancedPromptBuilder.append("- ")
+                                .append(imageResource.getCategory().getText())
+                                .append(":")
+                                .append(imageResource.getDescription())
+                                .append("(")
+                                .append(imageResource.getUrl())
+                                .append(") \n");
+                    }
+
+                }else {
+                    enhancedPromptBuilder.append(imageListStr);
+                }
+            }
+
+
             // 简单的假数据
-            String enhancedPrompt = "这是增强后的假数据提示词";
+            String enhancedPrompt = enhancedPromptBuilder.toString();
+
             
             // 更新状态
             context.setCurrentStep("提示词增强");
             context.setEnhancedPrompt(enhancedPrompt);
-            log.info("提示词增强完成");
+            log.info("提示词增强完成，增强后长度: {} 字符", enhancedPrompt.length());
             return WorkflowContext.saveContext(context);
         });
     }
