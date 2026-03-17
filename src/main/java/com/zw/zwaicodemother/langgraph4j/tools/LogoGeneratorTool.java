@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.alibaba.dashscope.aigc.imagesynthesis.ImageSynthesis;
 import com.alibaba.dashscope.aigc.imagesynthesis.ImageSynthesisParam;
 import com.alibaba.dashscope.aigc.imagesynthesis.ImageSynthesisResult;
+import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationParam;
 import com.zw.zwaicodemother.langgraph4j.model.ImageResource;
 import com.zw.zwaicodemother.langgraph4j.model.enums.ImageCategoryEnum;
 import dev.langchain4j.agent.tool.P;
@@ -12,9 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Logo 图片生成工具
@@ -32,10 +31,11 @@ public class LogoGeneratorTool {
     public List<ImageResource> generateLogos(@P("Logo 设计描述，如名称、行业、风格等，尽量详细")
                                               String description) {
         List<ImageResource> logoList = new ArrayList<>();
+//        Map<String, Object> logoList = new HashMap<>();
         try {
             //构建Logo设计提示词
             String logoPrompt = String.format("生成 Logo，Logo 中禁止包含任何文字！Logo 介绍：%s", description);
-            ImageSynthesisParam param = ImageSynthesisParam.builder()
+            ImageSynthesisParam  param = ImageSynthesisParam.builder()
                     .apiKey(dashScopeApiKey)
                     .model(imageModel)
                     .prompt(logoPrompt)
