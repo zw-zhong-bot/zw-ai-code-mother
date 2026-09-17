@@ -1,0 +1,69 @@
+# ============================================================
+# zw-ai-code-mother 后端编排（服务器侧，位于 /opt/zw-ai-code-mother/backend）
+#
+# 由本地的 deploy/scripts/release.sh 通过 SSH 调用，一般不需要手动执行。
+# 手动操作：
+#   cd /opt/zw-ai-code-mother/backend
+#   TAG=manual docker compose build && TAG=manual docker compose up -d
+#   docker compose logs -f backend
+#
+# 服务器目录约定（绝对路径，改这里要同步改 deploy/nginx 配置）：
+#   /opt/zw-ai-code-mother/data   运行时数据（生成物、上传文件、截图临时文件）
+#   /opt/zw-ai-code-mother/logs   日志
+# ============================================================
+
+services:
+  backend:
+    # 构建上下文就是本目录：只有 Dockerfile 和 app.jar，不含任何源码。
+    # jar 已由本地编译好上传，服务器不做任何编译。
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: zw-ai-code-mother-backend:${TAG:-latest}
+    container_name: zw-backend
+
+    # host 网络：容器直接访问宿主机 127.0.0.1 上的 MySQL(3306) 与 Redis(6379)，
+    # 因此 application-prod.yml 里的连接地址完全不需要改。
+    # 配合 server.address=127.0.0.1，8123 仅监听回环，不对外暴露。
+    # 注意：host 模式下 ports 映射会被忽略，不要写。
+    network_mode: host
+
+    restart: unless-stopped
+
+    env_file:
+      - ./backend.env
+    environment:
+      TZ: Asia/Shanghai
+
+    volumes:
+      # AI 生成的源码（对话页右侧预览用）
+      - /opt/zw-ai-code-mother/data/code_output:/app/tmp/code_output
+      # AI 生成并已部署的应用（对外 /apps/{deployKey}/）
+      - /opt/zw-ai-code-mother/data/apps:/app/tmp/code_deploy
+      # 截图临时文件
+      - /opt/zw-ai-code-mother/data/temp:/app/temp
+      # 应用封面上传目录（代码写向源码目录，必须挂载，否则上传报错）
+      - /opt/zw-ai-code-mother/data/fengmian:/app/src/main/resources/static/fengmian
+      # 用户头像上传目录（同上）
+      - /opt/zw-ai-code-mother/data/ping:/app/src/main/resources/static/ping
+      - /opt/zw-ai-code-mother/logs:/app/logs
+
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8123/api/health/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+
+    # 2GB 内存的机器，限制日志体积，避免把磁盘写满
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+    # JVM 内存上限：宿主机总共只有 1963 MB，已用约 1000 MB，
+    # 这里给容器 850 MB 上限（配 Dockerfile 里的 MaxRAMPercentage=60，即约 510 MB 堆），
+    # 剩下留给 MySQL 容器 / Redis / nginx / 宝塔。
+    # 命中上限时 Docker 会重启容器（已配 ExitOnOutOfMemoryError），不会拖垮宿主机。
+    mem_limit: 850m
