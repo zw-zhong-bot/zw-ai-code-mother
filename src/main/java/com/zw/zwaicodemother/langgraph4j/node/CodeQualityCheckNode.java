@@ -3,6 +3,7 @@ package com.zw.zwaicodemother.langgraph4j.node;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
 import com.zw.zwaicodemother.langgraph4j.ai.CodeQualityCheckService;
+import com.zw.zwaicodemother.langgraph4j.ai.CodeQualityCheckServiceFactory;
 import com.zw.zwaicodemother.langgraph4j.model.QualityResult;
 import com.zw.zwaicodemother.langgraph4j.state.WorkflowContext;
 import com.zw.zwaicodemother.utils.SpringContextUtil;
@@ -39,8 +40,10 @@ public class CodeQualityCheckNode {
                             .suggestions(List.of("请确保代码生成成功"))
                             .build();
                 } else {
-                    // 2. 调用 AI 进行代码质量检查
-                    CodeQualityCheckService qualityCheckService = SpringContextUtil.getBean(CodeQualityCheckService.class);
+                    // 2. 调用 AI 进行代码质量检查（工厂内部按模型版本自动重建，支持模型热切换）
+                    CodeQualityCheckService qualityCheckService = SpringContextUtil
+                            .getBean(CodeQualityCheckServiceFactory.class)
+                            .getCodeQualityCheckService();
                     qualityResult = qualityCheckService.checkCodeQuality(codeContent);
                     log.info("代码质量检查完成 - 是否通过: {}", qualityResult.getIsValid());
                 }

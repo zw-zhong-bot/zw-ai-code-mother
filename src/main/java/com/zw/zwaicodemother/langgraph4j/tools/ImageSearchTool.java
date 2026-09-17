@@ -1,62 +1,67 @@
 package com.zw.zwaicodemother.langgraph4j.tools;
 
-import cn.hutool.http.HttpRequest;
-import cn.hutool.http.HttpResponse;
-import cn.hutool.json.JSONArray;
-import cn.hutool.json.JSONObject;
-import cn.hutool.json.JSONUtil;
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.StrUtil;
+import com.zw.zwaicodemother.ai.ModelRegistry;
+import com.zw.zwaicodemother.ai.provider.ImageItem;
+import com.zw.zwaicodemother.ai.provider.ImageSearchProvider;
+import com.zw.zwaicodemother.ai.provider.ProviderBinding;
 import com.zw.zwaicodemother.langgraph4j.model.ImageResource;
 import com.zw.zwaicodemother.langgraph4j.model.enums.ImageCategoryEnum;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
-
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 
-
-/*
-* 图片搜索工具（根据关键词搜索图片）
-*
-* */
+/**
+ * 图片搜索工具（根据关键词搜索图片）。
+ * <p>
+ * 接口地址与密钥在每次调用时向 ModelRegistry 解析，管理端修改搜索配置后无需重启即可生效。
+ *
+ * @author <a href="https://github.com/zw-zhong-bot">程序员zw</a>
+ * @since 2026-09-17
+ */
 @Slf4j
 @Component
 public class ImageSearchTool {
 
-    private static final String PEXELS_API_URL = "https://api.pexels.com/v1/search";
+    /**
+     * 单次搜索返回的图片数量
+     */
+    private static final int SEARCH_COUNT = 12;
 
-    @Value("${pexels.api-key}")
-    private String pexelsApiKey;
+    @Resource
+    private ModelRegistry modelRegistry;
 
     @Tool("搜索内容相关的图片，用于网站内容展示")
     public List<ImageResource> searchContentImages(@P("搜索关键词") String query) {
         List<ImageResource> imageList = new ArrayList<>();
-        int searchCount = 12;
-        // 调用 API，注意释放资源
-        try (HttpResponse response = HttpRequest.get(PEXELS_API_URL)
-                .header("Authorization", pexelsApiKey)
-                .form("query", query)
-                .form("per_page", searchCount)
-                .form("page", 1)
-                .execute()) {
-            if (response.isOk()) {
-                JSONObject result = JSONUtil.parseObj(response.body());
-                JSONArray photos = result.getJSONArray("photos");
-                for (int i = 0; i < photos.size(); i++) {
-                    JSONObject photo = photos.getJSONObject(i);
-                    JSONObject src = photo.getJSONObject("src");
-                    imageList.add(ImageResource.builder()
-                            .category(ImageCategoryEnum.CONTENT)
-                            .description(photo.getStr("alt", query))
-                            .url(src.getStr("medium"))
-                            .build());
+        try {
+            ProviderBinding<ImageSearchProvider> binding = modelRegistry.getImageSearch();
+            List<ImageItem> imageItems = binding.getProvider()
+                    .search(binding.getOptions(), query, SEARCH_COUNT);
+            if (CollUtil.isEmpty(imageItems)) {
+                // 明确告警，避免配置错误时静默返回空列表
+                log.warn("图片搜索未返回结果，配置：{}，关键词：{}",
+                        binding.getOptions().getConfigName(), query);
+                return imageList;
+            }
+            for (ImageItem imageItem : imageItems) {
+                if (StrUtil.isBlank(imageItem.getUrl())) {
+                    continue;
                 }
+                imageList.add(ImageResource.builder()
+                        .category(ImageCategoryEnum.CONTENT)
+                        .description(StrUtil.blankToDefault(imageItem.getDescription(), query))
+                        .url(imageItem.getUrl())
+                        .build());
             }
         } catch (Exception e) {
-            log.error("Pexels API 调用失败: {}", e.getMessage(), e);
+            log.error("图片搜索失败: {}", e.getMessage(), e);
         }
         return imageList;
     }

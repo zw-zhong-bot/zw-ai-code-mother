@@ -2,6 +2,7 @@ package com.zw.zwaicodemother.controller;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
@@ -27,6 +28,7 @@ import com.zw.zwaicodemother.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
@@ -46,6 +48,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/app")
+@Slf4j
 public class AppController {
 
     @Resource
@@ -317,17 +320,25 @@ public class AppController {
         ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR,"用户消息不能为空");
 //        获取当前登录用户
         User loginUser =userService.getLoginUser(request);
-//        调用服务生成代码
-        Flux<String> contentFlux=appService.chatToGenCode(appId,message,loginUser);
-//        转化成ServiceSentFlux 格式
-
-        return contentFlux.map(chunk -> {
+//        调用服务生成代码：defer 包裹保证同步抛出的异常也进入流内，由下方 onErrorResume 接住
+        return Flux.defer(() -> appService.chatToGenCode(appId, message, loginUser))
+                .map(chunk -> {
             //将内容包装成JSON对象
             Map<String,String> wrapper  =Map.of("d",chunk);
             String jsonData = JSONUtil.toJsonStr(wrapper);
             return ServerSentEvent.<String>builder()
                     .data(jsonData)
                     .build();
+        }).onErrorResume(e -> {
+            // SSE 请求的 Accept 不接受 JSON，全局异常处理器的响应写不出去，
+            // 因此必须把错误转成流内事件，前端才能拿到真实原因
+            String reason = resolveStreamErrorMessage(e);
+            log.error("代码生成流式处理失败，appId: {}, 原因: {}", appId, reason, e);
+            Map<String,String> errorWrapper = Map.of("message", reason);
+            return Flux.just(ServerSentEvent.<String>builder()
+                    .event("fail")
+                    .data(JSONUtil.toJsonStr(errorWrapper))
+                    .build());
         }).concatWith(Mono.just(
                 //发送结束事件
                 ServerSentEvent.<String>builder().event("done")
@@ -335,6 +346,28 @@ public class AppController {
                         .build()
         ));
     }
+    /**
+     * 把流内异常转成可读原因
+     * <p>
+     * 模型端返回的异常信息常为 {@code {"error":{"message":"..."}}} 形式的 JSON，
+     * 直接展示可读性差，此处尝试提取内层 message。
+     *
+     * @param e 异常
+     * @return 可读原因
+     */
+    private String resolveStreamErrorMessage(Throwable e) {
+        String raw = StrUtil.blankToDefault(e.getMessage(), "生成失败");
+        try {
+            JSONObject error = JSONUtil.parseObj(raw).getJSONObject("error");
+            if (error != null && StrUtil.isNotBlank(error.getStr("message"))) {
+                raw = error.getStr("message");
+            }
+        } catch (Exception ignored) {
+            // 非 JSON 格式，按原文返回
+        }
+        return StrUtil.maxLength(raw, 300);
+    }
+
     /**
      * 应用部署
      *

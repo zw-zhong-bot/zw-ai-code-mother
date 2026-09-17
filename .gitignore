@@ -33,6 +33,14 @@ build/
 ### VS Code ###
 .vscode/
 
+### 部署密钥（严禁提交） ###
+deploy/backend.env
+deploy/*.env
+!deploy/*.env.example
+
+### 本地构建产物（每台机器重新生成） ###
+deploy/build/
+
 ### CUSTOM ###
 
 /src/main/java/com/zw/zwaicodemother/EnvVarController.java
@@ -71,3 +79,5 @@ build/
 /zw-ai-code-mother-frontend/docs/生成类型展示功能说明.md
 /zw-ai-code-mother-frontend/docs/
 /zw-ai-code-mother-frontend/.codebuddy/.ignored_image/d352070fb8e67ab552c4f2a373da15d0.png
+/凭证/
+/temp/

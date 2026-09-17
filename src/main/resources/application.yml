@@ -70,6 +70,11 @@ cos:
 pexels:
   api-key: ${Pexels:NOT_SET_IN_YAML}
 # 阿里云 DashScope 配置
+# 说明：模型配置表（model_config）中存在对应能力的启用默认配置时，以数据库为准；
+# 此处仅作为未配置数据库时的兜底。管理端入口：/admin/modelManage
 dashscope:
   api-key: ${DashScope:NOT_SET_IN_YAML}
+  # 仅支持 wan 系模型：DashScopeImageGenProvider 会按模型名前缀路由，
+  # qwen-image 系走 MultiModalConversation，其余走 ImageSynthesis
   image-model: wan2.2-t2i-flash
+  image-size: 512*512

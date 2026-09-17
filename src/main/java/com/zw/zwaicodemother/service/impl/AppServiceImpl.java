@@ -8,7 +8,7 @@ import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
-import com.zw.zwaicodemother.ai.AiCodeGenTypeRoutingService;
+import com.zw.zwaicodemother.ai.AiCodeGenTypeRoutingServiceFactory;
 import com.zw.zwaicodemother.ai.enums.CodeGenTypeEnum;
 import com.zw.zwaicodemother.constant.AppConstant;
 import com.zw.zwaicodemother.core.AiCodeGeneratorFacade;
@@ -66,7 +66,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Resource
     private ScreenshotService screenshotService;
     @Resource
-    private AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService;
+    private AiCodeGenTypeRoutingServiceFactory aiCodeGenTypeRoutingServiceFactory;
 
     public AppServiceImpl(UserServiceImpl userServiceImpl, AiCodeGeneratorFacade aiCodeGeneratorFacade) {
         this.userServiceImpl = userServiceImpl;
@@ -372,8 +372,17 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         app.setUserId(loginUser.getId());
         // 应用名称暂时为 initPrompt 前 12 位
         app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 12)));
-        //使用AI智能选择代码生成类型
-        CodeGenTypeEnum selectedCodeGenType = aiCodeGenTypeRoutingService.routeCodeGenType(initPrompt);
+        //使用AI智能选择代码生成类型（工厂内部按模型版本自动重建，支持模型热切换）
+        //模型不可用时降级为 HTML，避免因为一次模型调用失败就完全阻断建应用流程
+        CodeGenTypeEnum selectedCodeGenType;
+        try {
+            selectedCodeGenType = aiCodeGenTypeRoutingServiceFactory
+                    .getAiCodeGenTypeRoutingService()
+                    .routeCodeGenType(initPrompt);
+        } catch (Exception e) {
+            log.warn("AI 智能路由失败，已降级为默认类型 HTML，原因: {}", e.getMessage(), e);
+            selectedCodeGenType = CodeGenTypeEnum.HTML;
+        }
         app.setCodeGenType(selectedCodeGenType.getValue());
         app.setCreateTime(LocalDateTime.now());
         app.setUpdateTime(LocalDateTime.now());

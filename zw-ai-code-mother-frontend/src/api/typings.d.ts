@@ -274,4 +274,101 @@ declare namespace API {
     userRole?: string
     createTime?: string
   }
+
+  type ModelProviderOption = {
+    value?: string
+    text?: string
+  }
+
+  type ModelCapabilityOptionVO = {
+    capability?: string
+    capabilityText?: string
+    providers?: ModelProviderOption[]
+  }
+
+  type ModelConfigVO = {
+    id?: string
+    configName?: string
+    capability?: string
+    capabilityText?: string
+    provider?: string
+    providerText?: string
+    baseUrl?: string
+    apiKeyMasked?: string
+    apiKeyConfigured?: boolean
+    modelName?: string
+    params?: string
+    isDefault?: number
+    status?: number
+    remark?: string
+    createTime?: string
+    updateTime?: string
+  }
+
+  type ModelConfigAddRequest = {
+    configName?: string
+    capability?: string
+    provider?: string
+    baseUrl?: string
+    apiKey?: string
+    modelName?: string
+    params?: string
+    isDefault?: number
+    status?: number
+    remark?: string
+  }
+
+  type ModelConfigUpdateRequest = {
+    id?: string
+    configName?: string
+    capability?: string
+    provider?: string
+    baseUrl?: string
+    apiKey?: string
+    modelName?: string
+    params?: string
+    isDefault?: number
+    status?: number
+    remark?: string
+  }
+
+  type ModelConfigQueryRequest = {
+    capability?: string
+    provider?: string
+    status?: number
+    configName?: string
+  }
+
+  type ModelConfigIdRequest = {
+    id?: string
+  }
+
+  type ModelConfigTestRequest = {
+    id?: string
+    configName?: string
+  }
+
+  type ModelConfigTestVO = {
+    success?: boolean
+    elapsedMs?: number
+    message?: string
+  }
+
+  type BaseResponseListModelConfigVO = {
+    code?: number
+    data?: ModelConfigVO[]
+    message?: string
+  }
+
+  type BaseResponseListModelCapabilityOptionVO = {
+    code?: number
+    data?: ModelCapabilityOptionVO[]
+    message?: string
+  }
+
+  type BaseResponseModelConfigTestVO = {
+    code?: number
+    data?: ModelConfigTestVO
+    message?: string
+  }
 }

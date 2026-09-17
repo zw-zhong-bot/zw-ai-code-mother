@@ -1,6 +1,7 @@
 package com.zw.zwaicodemother.langgraph4j.node;
 
 import com.zw.zwaicodemother.ai.AiCodeGenTypeRoutingService;
+import com.zw.zwaicodemother.ai.AiCodeGenTypeRoutingServiceFactory;
 import com.zw.zwaicodemother.ai.enums.CodeGenTypeEnum;
 import com.zw.zwaicodemother.langgraph4j.state.WorkflowContext;
 import com.zw.zwaicodemother.utils.SpringContextUtil;
@@ -23,9 +24,10 @@ public class RouterNode {
 
             CodeGenTypeEnum generationType;
             try{
-                //获取Ai路由服务
-                AiCodeGenTypeRoutingService routingService =
-                        SpringContextUtil.getBean(AiCodeGenTypeRoutingService.class);
+                //获取Ai路由服务（工厂内部按模型版本自动重建，支持模型热切换）
+                AiCodeGenTypeRoutingService routingService = SpringContextUtil
+                        .getBean(AiCodeGenTypeRoutingServiceFactory.class)
+                        .getAiCodeGenTypeRoutingService();
                 //根据原始提示词进行智能路由
                 generationType = routingService.routeCodeGenType(context.getOriginalPrompt());
                 log.info("AI智能路由完成，选择类型: {} ({})", generationType.getValue(), generationType.getText());

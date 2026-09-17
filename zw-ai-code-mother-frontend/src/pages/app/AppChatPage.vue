@@ -536,6 +536,34 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
       }, 1000)
     })
 
+    // 处理服务端失败事件（后端在流内下发，携带真实失败原因）
+    eventSource.addEventListener('fail', function (event) {
+      if (streamCompleted) return
+
+      streamCompleted = true
+      isGenerating.value = false
+      eventSource?.close()
+
+      let reason = '未知原因'
+      try {
+        const parsed = JSON.parse((event as MessageEvent).data)
+        if (parsed?.message) {
+          reason = parsed.message
+        }
+      } catch (error) {
+        console.error('解析失败事件异常：', error)
+      }
+      messages.value[aiMessageIndex].content = `生成失败：${reason}`
+      messages.value[aiMessageIndex].loading = false
+      message.error('生成失败，请检查模型配置后重试')
+      scrollToBottom()
+
+      setTimeout(async () => {
+        await fetchAppInfo()
+        updatePreview()
+      }, 1000)
+    })
+
     // 处理错误
     eventSource.onerror = function () {
       if (streamCompleted || !isGenerating.value) return

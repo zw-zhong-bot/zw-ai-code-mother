@@ -65,3 +65,25 @@ create table chat_history
     INDEX idx_createTime (createTime),             -- 提升基于时间的查询性能
     INDEX idx_appId_createTime (appId, createTime) -- 游标查询核心索引
 ) comment '对话历史' collate = utf8mb4_unicode_ci;
+-- 模型配置表（管理员可插拔模型参数：提供方、接口地址、模型名称、密钥）
+create table if not exists model_config
+(
+    id         bigint auto_increment comment 'id' primary key,
+    configName varchar(128)  not null comment '配置名称，全局唯一，如 chat-default',
+    capability varchar(32)   not null comment '能力类型：CHAT/STREAM_CHAT/REASONING/IMAGE_GEN/IMAGE_SEARCH',
+    provider   varchar(32)   not null comment '提供方：OPENAI_COMPATIBLE/DASHSCOPE/PEXELS',
+    baseUrl    varchar(512)  null comment '接口地址',
+    apiKey     varchar(1024) null comment '密钥（AES 加密存储，接口只返回掩码）',
+    modelName  varchar(128)  null comment '模型名称',
+    params     varchar(1024) null comment '扩展参数 JSON：maxTokens/temperature/timeout/size/n 等',
+    isDefault  tinyint       not null default 0 comment '同 capability 下的默认配置：0 否 1 是',
+    status     tinyint       not null default 1 comment '状态：1 启用 0 停用',
+    remark     varchar(512)  null comment '备注',
+    userId     bigint        null comment '最后修改人 id',
+    createTime datetime      not null default CURRENT_TIMESTAMP comment '创建时间',
+    updateTime datetime      not null default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP comment '更新时间',
+    isDelete   tinyint       not null default 0 comment '是否删除',
+    UNIQUE KEY uk_configName (configName),
+    INDEX idx_capability (capability),
+    INDEX idx_capability_default (capability, isDefault, status)
+) comment '模型配置' collate = utf8mb4_unicode_ci;

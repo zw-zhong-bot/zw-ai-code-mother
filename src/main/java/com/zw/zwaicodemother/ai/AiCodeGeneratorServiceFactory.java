@@ -3,6 +3,7 @@ package com.zw.zwaicodemother.ai;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.zw.zwaicodemother.ai.enums.CodeGenTypeEnum;
+import com.zw.zwaicodemother.ai.event.ModelConfigChangedEvent;
 import com.zw.zwaicodemother.ai.tool.*;
 import com.zw.zwaicodemother.exception.BusinessException;
 import com.zw.zwaicodemother.exception.ErrorCode;
@@ -10,15 +11,12 @@ import com.zw.zwaicodemother.service.ChatHistoryService;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
-import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.service.AiServices;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
+import org.springframework.context.event.EventListener;
 
 import java.time.Duration;
 
@@ -31,15 +29,11 @@ import java.time.Duration;
 @Slf4j
 public class AiCodeGeneratorServiceFactory {
 
+    /**
+     * 模型注册表：模型实例在调用时解析，支持配置热切换
+     */
     @Resource
-    private ChatModel chatModel;
-
-    @Resource
-    //@Qualifier("openAiStreamingChatModel") // 添加限定符
-    private StreamingChatModel openAiStreamingChatModel;
-
-    @Resource
-    private StreamingChatModel reasoningStreamingChatModel;
+    private ModelRegistry modelRegistry;
 
     @Resource
     private RedisChatMemoryStore redisChatMemoryStore;
@@ -108,7 +102,7 @@ public class AiCodeGeneratorServiceFactory {
             // Vue 项目生成，使用工具调用和推理模型
             // Vue 项目生成使用推理模型
             case VUE_PROJECT -> AiServices.builder(AiCodeGeneratorService.class)
-                    .streamingChatModel(reasoningStreamingChatModel)
+                    .streamingChatModel(modelRegistry.getReasoningStreamingChatModel())
                     .chatMemoryProvider(memoryId -> chatMemory)
                     .tools(toolManager.getAllTools())
                     // 处理工具调用幻觉问题
@@ -118,8 +112,8 @@ public class AiCodeGeneratorServiceFactory {
                     .build();
             // HTML 和 多文件生成，使用流式对话模型
             case HTML ,MULTI_FILE -> AiServices.builder(AiCodeGeneratorService.class)
-                    .chatModel(chatModel)
-                    .streamingChatModel(openAiStreamingChatModel)
+                    .chatModel(modelRegistry.getChatModel())
+                    .streamingChatModel(modelRegistry.getStreamingChatModel())
                     .chatMemory(chatMemory)
                     .build();
             default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR,
@@ -135,6 +129,24 @@ public class AiCodeGeneratorServiceFactory {
     @Bean
     public AiCodeGeneratorService aiCodeGeneratorService() {
         return getAiCodeGeneratorService(0);
+    }
+
+    /**
+     * 模型配置变更后清空 AI 服务实例缓存，使新配置在下一次调用时生效
+     *
+     * @param event 变更事件
+     */
+    @EventListener
+    public void onModelConfigChanged(ModelConfigChangedEvent event) {
+        clearServiceCache();
+    }
+
+    /**
+     * 清空 AI 服务实例缓存
+     */
+    public void clearServiceCache() {
+        serviceCache.invalidateAll();
+        log.info("模型配置已变更，AI 服务实例缓存已清空");
     }
 
     /**

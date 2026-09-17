@@ -1,6 +1,7 @@
 package com.zw.zwaicodemother.langgraph4j.node;
 
 import com.zw.zwaicodemother.langgraph4j.ai.ImageCollectionService;
+import com.zw.zwaicodemother.langgraph4j.ai.ImageCollectionServiceFactory;
 import com.zw.zwaicodemother.langgraph4j.state.WorkflowContext;
 import com.zw.zwaicodemother.utils.SpringContextUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -26,8 +27,10 @@ public class ImageCollectorNode {
             String originalPrompt = context.getOriginalPrompt();
             String imageListStr = "";
             try{
-                //获取AI图片收集服务
-                ImageCollectionService imageCollectionService = SpringContextUtil.getBean(ImageCollectionService.class);
+                //获取AI图片收集服务（工厂内部按模型版本自动重建，支持模型热切换）
+                ImageCollectionService imageCollectionService = SpringContextUtil
+                        .getBean(ImageCollectionServiceFactory.class)
+                        .getImageCollectionService();
                 //使用 AI 服务进行智能图片收集
                 imageListStr = imageCollectionService.collectImages(originalPrompt);
 

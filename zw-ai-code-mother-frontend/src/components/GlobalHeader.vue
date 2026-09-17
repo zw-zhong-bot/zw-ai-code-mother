@@ -83,6 +83,11 @@ const originItems = [
     title: '应用管理',
   },
   {
+    key: '/admin/modelManage',
+    label: '模型管理',
+    title: '模型管理',
+  },
+  {
     key: 'others',
     label: h('a', { href: 'https://github.com/zw-zhong-bot/zw-ai-code-mother.git', target: '_blank' }, '项目主页'),
     title: '项目主页',
