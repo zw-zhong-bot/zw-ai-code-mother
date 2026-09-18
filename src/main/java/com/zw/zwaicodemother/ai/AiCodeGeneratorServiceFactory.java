@@ -104,7 +104,7 @@ public class AiCodeGeneratorServiceFactory {
             case VUE_PROJECT -> AiServices.builder(AiCodeGeneratorService.class)
                     .streamingChatModel(modelRegistry.getReasoningStreamingChatModel())
                     .chatMemoryProvider(memoryId -> chatMemory)
-                    .tools(toolManager.getAllTools())
+                    .tools((Object) toolManager.getAllTools())
                     // 处理工具调用幻觉问题
                     .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
                             toolExecutionRequest, "Error: there is no tool called " + toolExecutionRequest.name()
