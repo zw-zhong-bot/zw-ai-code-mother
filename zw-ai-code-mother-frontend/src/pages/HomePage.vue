@@ -556,8 +556,18 @@ onMounted(() => {
 
 /* 响应式设计 */
 @media (max-width: 768px) {
+  .container {
+    padding: 12px;
+  }
+
+  .hero-section {
+    padding: 40px 0 28px;
+    margin-bottom: 20px;
+  }
+
   .hero-title {
     font-size: 32px;
+    letter-spacing: -0.5px;
   }
 
   .hero-description {
@@ -567,10 +577,68 @@ onMounted(() => {
   .app-grid,
   .featured-grid {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
 
   .quick-actions {
     justify-content: center;
+    gap: 8px;
+    margin-bottom: 36px;
+  }
+
+  /* 快捷按钮触控区域放大 */
+  .quick-actions .ant-btn {
+    min-height: 40px;
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+
+  .prompt-input {
+    font-size: 16px;
+    padding: 16px 56px 16px 16px;
+  }
+
+  .section {
+    margin-bottom: 40px;
+  }
+
+  .section-title {
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+
+  .pagination-wrapper {
+    margin-top: 24px;
+  }
+}
+
+/* 小屏手机 */
+@media (max-width: 480px) {
+  .hero-section {
+    padding: 28px 0 20px;
+  }
+
+  .hero-title {
+    font-size: 26px;
+  }
+
+  .hero-description {
+    font-size: 14px;
+  }
+
+  .section-title {
+    font-size: 20px;
+  }
+
+  /* 小屏下快捷按钮两列均分，避免参差不齐的换行 */
+  .quick-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .quick-actions .ant-btn {
+    width: 100%;
+    padding: 8px 10px;
   }
 }
 </style>

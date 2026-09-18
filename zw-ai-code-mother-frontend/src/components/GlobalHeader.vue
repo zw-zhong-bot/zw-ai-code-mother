@@ -140,17 +140,27 @@ const doLogout = async () => {
 .header {
   background: #fff;
   padding: 0 24px;
+  /* 移动端顶部安全区（刘海屏） */
+  padding-top: var(--zw-safe-top);
+  height: auto;
+  min-height: var(--zw-header-h);
+  line-height: normal;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .header-left {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
 }
 
 .logo {
   height: 48px;
   width: 48px;
+  flex-shrink: 0;
 }
 
 .site-title {
@@ -158,6 +168,7 @@ const doLogout = async () => {
   font-size: 18px;
   font-weight: 600;
   letter-spacing: -0.01em;
+  white-space: nowrap;
   background: var(--zw-gradient-brand);
   -webkit-background-clip: text;
   background-clip: text;
@@ -166,5 +177,68 @@ const doLogout = async () => {
 
 .ant-menu-horizontal {
   border-bottom: none !important;
+}
+
+/* =========================================================
+   移动端：收窄 Logo 与间距，隐藏次要项，避免横向溢出
+   ========================================================= */
+@media (max-width: 768px) {
+  .header {
+    padding: 0 12px;
+    padding-top: var(--zw-safe-top);
+  }
+
+  .header :deep(.ant-row) {
+    align-items: center;
+    /* 允许右侧用户区换行到第二行，避免与菜单挤在一行溢出 */
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+
+  /* 取消桌面端的固定 200px 左栏，改为内容自适应 */
+  .header :deep(.ant-col:first-child) {
+    flex: 0 0 auto !important;
+    min-width: 0 !important;
+  }
+
+  .header-left {
+    gap: 8px;
+  }
+
+  .logo {
+    height: 32px;
+    width: 32px;
+  }
+
+  .site-title {
+    font-size: 15px;
+    /* 极窄屏允许品牌名截断，优先保证用户区可见 */
+    max-width: 42vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* 菜单项触控区域放大 */
+  .header :deep(.ant-menu-item) {
+    padding: 0 8px !important;
+    min-height: var(--zw-touch-min);
+    line-height: var(--zw-touch-min);
+  }
+
+  .header :deep(.ant-menu-title-content) {
+    font-size: 14px;
+  }
+
+  /* 头像触控区域 */
+  .header :deep(.ant-avatar) {
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .site-title {
+    font-size: 14px;
+    max-width: 36vw;
+  }
 }
 </style>

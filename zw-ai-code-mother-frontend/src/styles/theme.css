@@ -82,6 +82,28 @@
   /* ---------- 过渡 ---------- */
   --zw-ease: cubic-bezier(0.4, 0, 0.2, 1);
   --zw-transition: all 0.25s var(--zw-ease);
+
+  /* ---------- 布局 ---------- */
+  /* 动态视口高度：移动端地址栏收起/展开、软键盘弹出时 dVH 会跟随变化，
+     而 100vh 恒等于「地址栏隐藏时」的高度，会导致内容被裁掉或输入框被遮挡。
+     --zw-vh 由 JS 兜底更新（见 utils/viewport.ts），dvh 不被支持时使用。 */
+  --zw-vh: 100vh;
+  /* 安全区：适配刘海屏 / 手势条 */
+  --zw-safe-top: env(safe-area-inset-top, 0px);
+  --zw-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --zw-safe-left: env(safe-area-inset-left, 0px);
+  --zw-safe-right: env(safe-area-inset-right, 0px);
+  /* 触控目标最小尺寸（WCAG 2.5.8 / Apple HIG 建议 44px） */
+  --zw-touch-min: 44px;
+  /* 全局头部高度（移动端会压缩，供各页面对齐使用） */
+  --zw-header-h: 64px;
+}
+
+/* 支持动态视口单位时优先使用，避免 JS 兜底带来的抖动 */
+@supports (height: 100dvh) {
+  :root {
+    --zw-vh: 100dvh;
+  }
 }
 
 /* =========================================================
@@ -112,6 +134,61 @@
     20px 20px,
     20px 20px;
   pointer-events: none;
+}
+
+/* =========================================================
+   移动端全局防溢出
+   目的：兜住任何单点遗漏，保证任何页面都不出现横向滚动条。
+   ========================================================= */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* 媒体元素与长 URL/代码默认不撑破容器 */
+img,
+video,
+canvas,
+iframe,
+svg {
+  max-width: 100%;
+}
+
+/* 长英文串 / URL 允许在任意位置断行，避免撑出容器 */
+.zw-break-anywhere {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* =========================================================
+   触控适配
+   ========================================================= */
+@media (hover: none) and (pointer: coarse) {
+  /* 触控设备上按钮与可点击项放大到易点区域。
+     仅对「小尺寸」按钮生效，不改变默认/大尺寸按钮的既有外观。 */
+  .ant-btn-sm {
+    min-height: 36px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  /* 触控设备没有 hover，去掉依赖 hover 才显示的交互提示态，
+     改为常显（由各组件自行处理），此处仅统一过渡时长避免粘滞感 */
+  .ant-btn,
+  .ant-input,
+  .ant-input-affix-wrapper,
+  .ant-checkbox-wrapper {
+    transition-duration: 0.12s;
+  }
+
+  /* 触控设备上的输入控件字号不得小于 16px，否则 iOS Safari 会自动放大页面 */
+  .ant-input,
+  .ant-input-affix-wrapper input,
+  .ant-input-affix-wrapper textarea,
+  textarea.ant-input {
+    font-size: 16px;
+  }
 }
 
 /* =========================================================

@@ -48,7 +48,11 @@ const renderedMarkdown = computed(() => {
 .markdown-content {
   line-height: 1.6;
   color: #333;
-  word-wrap: break-word;
+  /* 长 URL / 长单词强制断行，避免撑破消息气泡 */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* 全局样式，影响 v-html 内容 */
@@ -114,8 +118,12 @@ const renderedMarkdown = computed(() => {
   border: 1px solid #e1e1e1;
   border-radius: 6px;
   padding: 1em;
+  /* 代码块横向滚动限制在自身内部，不撑破气泡 */
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
   margin: 1em 0;
+  max-width: 100%;
 }
 
 .markdown-content :deep(pre code) {
@@ -124,12 +132,51 @@ const renderedMarkdown = computed(() => {
   border-radius: 0;
   font-size: 0.9em;
   line-height: 1.4;
+  /* 代码保持不换行，由 pre 自身横向滚动承载 */
+  white-space: pre;
 }
 
+/* 表格：宽表在自身内部横向滚动，避免撑破气泡与页面 */
 .markdown-content :deep(table) {
   border-collapse: collapse;
   margin: 1em 0;
   width: 100%;
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  max-width: 100%;
+}
+
+/* 单元格内不按任意位置断词（否则 "string" 会被拆成 "strin g"），
+   宽度不足时由外层 table 的横向滚动承载 */
+.markdown-content :deep(table th),
+.markdown-content :deep(table td) {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+/* 移动端：表格可横向滚动时给出可滚动提示（右侧渐隐遮罩） */
+@media (max-width: 768px) {
+  .markdown-content :deep(table) {
+    /* 保留 table 语义的同时允许滚动 */
+    white-space: nowrap;
+  }
+
+  .markdown-content :deep(pre) {
+    padding: 0.75em;
+    font-size: 0.85em;
+  }
+
+  .markdown-content :deep(blockquote) {
+    padding: 0.5em 0.75em;
+    margin: 0.75em 0;
+  }
+
+  .markdown-content :deep(ul),
+  .markdown-content :deep(ol) {
+    padding-left: 1.25em;
+  }
 }
 
 .markdown-content :deep(table th),

@@ -112,6 +112,30 @@ const handleViewWork = () => {
   opacity: 1;
 }
 
+/* 触屏设备没有 hover：操作层常显，但降低遮罩浓度以免长期遮挡预览图 */
+@media (hover: none) and (pointer: coarse) {
+  .app-overlay {
+    opacity: 1;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.15) 55%, transparent 100%);
+    align-items: flex-end;
+    padding-bottom: 12px;
+  }
+
+  /* 触屏上按钮放大到易点尺寸 */
+  .app-overlay :deep(.ant-btn) {
+    min-height: 36px;
+    padding: 0 14px;
+  }
+}
+
+/* 极窄屏：按钮堆叠为整行，避免并排时被挤出 */
+@media (max-width: 380px) {
+  .app-overlay :deep(.ant-space) {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 .app-info {
   padding: 16px;
   display: flex;

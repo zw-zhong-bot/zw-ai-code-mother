@@ -3,7 +3,14 @@
   <head>
     <meta charset="UTF-8">
     <link rel="icon" href="/favicon.jpg">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- viewport-fit=cover：让页面铺满刘海屏，配合 env(safe-area-inset-*) 使用安全区
+         interactive-widget=resizes-content：软键盘弹出时收缩视口（而非覆盖页面），
+         使固定定位的输入框跟随键盘上移，不被遮挡 -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
+    >
+    <meta name="theme-color" content="#3b82f6">
     <title>ZW AI 零代码应用生成平台</title>
   </head>
   <body>

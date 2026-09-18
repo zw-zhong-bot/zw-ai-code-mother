@@ -3,21 +3,24 @@
     <!-- 顶部栏 -->
     <div class="header-bar">
       <div class="header-left">
-        <h1 class="app-name">{{ appInfo?.appName || '网站生成器' }}</h1>
+        <h1 class="app-name" :title="appInfo?.appName || '网站生成器'">
+          {{ appInfo?.appName || '网站生成器' }}
+        </h1>
         <a-tag v-if="appInfo?.codeGenType" color="blue" class="code-gen-type-tag">
           {{ formatCodeGenType(appInfo.codeGenType) }}
         </a-tag>
       </div>
       <div class="header-right">
-        <a-button type="default" @click="showAppDetail">
+        <a-button type="default" aria-label="应用详情" @click="showAppDetail">
           <template #icon>
             <InfoCircleOutlined />
           </template>
-          应用详情
+          <span class="btn-text">应用详情</span>
         </a-button>
         <a-button
             type="primary"
             ghost
+            aria-label="下载代码"
             @click="downloadCode"
             :loading="downloading"
             :disabled="!isOwner"
@@ -25,21 +28,47 @@
           <template #icon>
             <DownloadOutlined />
           </template>
-          下载代码
+          <span class="btn-text">下载代码</span>
         </a-button>
-        <a-button type="primary" @click="deployApp" :loading="deploying">
+        <a-button type="primary" aria-label="部署" @click="deployApp" :loading="deploying">
           <template #icon>
             <CloudUploadOutlined />
           </template>
-          部署
+          <span class="btn-text">部署</span>
         </a-button>
       </div>
+    </div>
+
+    <!-- 移动端面板切换：窄屏下对话与预览改为单栏切换，避免上下双滚动区 -->
+    <div class="panel-switch" role="tablist" aria-label="面板切换">
+      <button
+          type="button"
+          role="tab"
+          class="panel-switch-item"
+          :class="{ 'is-active': mobilePanel === 'chat' }"
+          :aria-selected="mobilePanel === 'chat'"
+          @click="mobilePanel = 'chat'"
+      >
+        <CommentOutlined />
+        <span>对话</span>
+      </button>
+      <button
+          type="button"
+          role="tab"
+          class="panel-switch-item"
+          :class="{ 'is-active': mobilePanel === 'preview' }"
+          :aria-selected="mobilePanel === 'preview'"
+          @click="mobilePanel = 'preview'"
+      >
+        <EyeOutlined />
+        <span>预览</span>
+      </button>
     </div>
 
     <!-- 主要内容区域 -->
     <div class="main-content">
       <!-- 左侧对话区域 -->
-      <div class="chat-section">
+      <div class="chat-section" :class="{ 'is-hidden-mobile': mobilePanel !== 'chat' }">
         <!-- 消息区域 -->
         <div class="messages-container" ref="messagesContainer">
           <!-- 加载更多按钮 -->
@@ -49,15 +78,19 @@
             </a-button>
           </div>
           <div v-for="(message, index) in messages" :key="index" class="message-item">
+            <!-- 时间戳分隔：首条或与上一条间隔超过 5 分钟时显示 -->
+            <div v-if="shouldShowTime(index)" class="time-divider">
+              <span>{{ formatMessageTime(message.createTime) }}</span>
+            </div>
             <div v-if="message.type === 'user'" class="user-message">
               <div class="message-content">{{ message.content }}</div>
               <div class="message-avatar">
-                <a-avatar :src="loginUserStore.loginUser.userAvatar" />
+                <a-avatar :src="loginUserStore.loginUser.userAvatar" :size="avatarSize" />
               </div>
             </div>
             <div v-else class="ai-message">
               <div class="message-avatar">
-                <a-avatar :src="aiAvatar" />
+                <a-avatar :src="aiAvatar" :size="avatarSize" />
               </div>
               <div class="message-content">
                 <MarkdownRenderer v-if="message.content" :content="message.content" />
@@ -115,9 +148,9 @@
               <a-textarea
                   v-model:value="userInput"
                   :placeholder="getInputPlaceholder()"
-                  :rows="4"
+                  :rows="inputRows"
                   :maxlength="1000"
-                  @keydown.enter.prevent="sendMessage"
+                  @keydown.enter.exact.prevent="sendMessage"
                   :disabled="isGenerating || !isOwner"
               />
             </a-tooltip>
@@ -125,14 +158,15 @@
                 v-else
                 v-model:value="userInput"
                 :placeholder="getInputPlaceholder()"
-                :rows="4"
+                :rows="inputRows"
                 :maxlength="1000"
-                @keydown.enter.prevent="sendMessage"
+                @keydown.enter.exact.prevent="sendMessage"
                 :disabled="isGenerating"
             />
             <div class="input-actions">
               <a-button
                   type="primary"
+                  aria-label="发送"
                   @click="sendMessage"
                   :loading="isGenerating"
                   :disabled="!isOwner"
@@ -140,13 +174,14 @@
                 <template #icon>
                   <SendOutlined />
                 </template>
+                <span class="btn-text">发送</span>
               </a-button>
             </div>
           </div>
         </div>
       </div>
       <!-- 右侧网页展示区域 -->
-      <div class="preview-section">
+      <div class="preview-section" :class="{ 'is-hidden-mobile': mobilePanel !== 'preview' }">
         <div class="preview-header">
           <h3>生成后的网页展示</h3>
           <div class="preview-actions">
@@ -229,6 +264,7 @@ import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
 import aiAvatar from '@/assets/touxiang.jpg'
 import { API_BASE_URL, getStaticPreviewUrl } from '@/config/env'
 import { VisualEditor, type ElementInfo } from '@/utils/visualEditor'
+import { useIsMobile } from '@/composables/useMediaQuery'
 
 import {
   CloudUploadOutlined,
@@ -237,11 +273,22 @@ import {
   InfoCircleOutlined,
   DownloadOutlined,
   EditOutlined,
+  CommentOutlined,
+  EyeOutlined,
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
+
+/** 是否为手机尺寸（对应 message-content 等元素的自适应切换） */
+const isMobile = useIsMobile()
+/** 移动端当前展示的面板：对话 / 预览（桌面端两者同屏，此值不生效） */
+const mobilePanel = ref<'chat' | 'preview'>('chat')
+/** 输入框行数：移动端压缩为 2 行，为消息区留出更多可视空间 */
+const inputRows = computed(() => (isMobile.value ? 2 : 4))
+/** 头像尺寸：移动端略小，减少对消息宽度的挤占 */
+const avatarSize = computed(() => (isMobile.value ? 32 : 40))
 
 // 应用信息
 const appInfo = ref<API.AppVO>()
@@ -533,6 +580,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
       setTimeout(async () => {
         await fetchAppInfo()
         updatePreview()
+        switchToPreviewOnMobile()
       }, 1000)
     })
 
@@ -606,11 +654,66 @@ const updatePreview = () => {
   }
 }
 
+/**
+ * 移动端在生成完成后自动切到预览面板，避免用户误以为没有产出
+ * （桌面端两栏同屏，不做切换）
+ */
+const switchToPreviewOnMobile = () => {
+  if (isMobile.value) {
+    mobilePanel.value = 'preview'
+  }
+}
+
 // 滚动到底部
 const scrollToBottom = () => {
   if (messagesContainer.value) {
     messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
   }
+}
+
+/** 相邻消息间隔超过该毫秒数时展示时间分隔 */
+const TIME_DIVIDER_GAP = 5 * 60 * 1000
+
+/**
+ * 格式化消息时间：当天只显示时分，跨天补充日期
+ * @param time 后端返回的时间字符串
+ */
+const formatMessageTime = (time?: string) => {
+  if (!time) return ''
+  const date = new Date(time)
+  if (Number.isNaN(date.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const hhmm = `${pad(date.getHours())}:${pad(date.getMinutes())}`
+  const now = new Date()
+  const isSameDay =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+  if (isSameDay) {
+    return hhmm
+  }
+  const isSameYear = date.getFullYear() === now.getFullYear()
+  const datePart = isSameYear
+    ? `${date.getMonth() + 1}月${date.getDate()}日`
+    : `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`
+  return `${datePart} ${hhmm}`
+}
+
+/**
+ * 判断某条消息前是否需要显示时间分隔
+ * 规则：首条显示；与上一条间隔超过 5 分钟显示；无时间的消息不显示
+ * @param index 消息下标
+ */
+const shouldShowTime = (index: number) => {
+  const current = messages.value[index]
+  if (!current?.createTime) return false
+  if (index === 0) return true
+  const prev = messages.value[index - 1]
+  if (!prev?.createTime) return true
+  const currentTime = new Date(current.createTime).getTime()
+  const prevTime = new Date(prev.createTime).getTime()
+  if (Number.isNaN(currentTime) || Number.isNaN(prevTime)) return false
+  return currentTime - prevTime > TIME_DIVIDER_GAP
 }
 
 // 下载代码
@@ -776,11 +879,14 @@ onUnmounted(() => {
 
 <style scoped>
 #appChatPage {
-  height: 100vh;
+  /* 用动态视口高度：移动端地址栏伸缩/软键盘弹出时会同步收缩，
+     避免输入框被键盘遮挡（100vh 在移动端恒为地址栏隐藏时的高度） */
+  height: var(--zw-vh);
   display: flex;
   flex-direction: column;
   padding: 16px;
   background: #fdfdfd;
+  overflow: hidden;
 }
 
 /* 顶部栏 */
@@ -788,17 +894,21 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   padding: 12px 16px;
+  flex-shrink: 0;
 }
 
 .header-left {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
 }
 
 .code-gen-type-tag {
   font-size: 12px;
+  flex-shrink: 0;
 }
 
 .app-name {
@@ -806,11 +916,50 @@ onUnmounted(() => {
   font-size: 18px;
   font-weight: 600;
   color: #1a1a1a;
+  /* 长应用名截断而不是撑破顶部栏 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .header-right {
   display: flex;
   gap: 12px;
+  flex-shrink: 0;
+}
+
+/* 移动端面板切换：仅窄屏显示 */
+.panel-switch {
+  display: none;
+  gap: 8px;
+  padding: 0 16px 12px;
+  flex-shrink: 0;
+}
+
+.panel-switch-item {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: var(--zw-touch-min);
+  padding: 0 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--zw-text-2);
+  background: #fff;
+  border: 1px solid var(--zw-border);
+  border-radius: var(--zw-radius-md);
+  cursor: pointer;
+  transition: var(--zw-transition);
+}
+
+.panel-switch-item.is-active {
+  color: #fff;
+  background: var(--zw-primary);
+  border-color: var(--zw-primary);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.24);
 }
 
 /* 主要内容区域 */
@@ -820,6 +969,7 @@ onUnmounted(() => {
   gap: 16px;
   padding: 8px;
   overflow: hidden;
+  min-height: 0;
 }
 
 /* 左侧对话区域 */
@@ -831,6 +981,8 @@ onUnmounted(() => {
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+  min-width: 0;
+  min-height: 0;
 }
 
 .messages-container {
@@ -838,10 +990,29 @@ onUnmounted(() => {
   padding: 16px;
   overflow-y: auto;
   scroll-behavior: smooth;
+  /* 触控滚动惯性 + 阻止滚动穿透到页面 */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  min-height: 0;
 }
 
 .message-item {
   margin-bottom: 12px;
+}
+
+/* 时间分隔 */
+.time-divider {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0 12px;
+}
+
+.time-divider span {
+  padding: 2px 10px;
+  font-size: 12px;
+  color: var(--zw-text-4);
+  background: rgba(148, 163, 184, 0.12);
+  border-radius: var(--zw-radius-pill);
 }
 
 .user-message {
@@ -863,7 +1034,10 @@ onUnmounted(() => {
   padding: 12px 16px;
   border-radius: 12px;
   line-height: 1.5;
-  word-wrap: break-word;
+  /* 长内容强制换行，避免撑破气泡 */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
 }
 
 .user-message .message-content {
@@ -899,6 +1073,9 @@ onUnmounted(() => {
 .input-container {
   padding: 16px;
   background: white;
+  flex-shrink: 0;
+  /* 适配全面屏底部手势条 */
+  padding-bottom: calc(16px + var(--zw-safe-bottom));
 }
 
 .input-wrapper {
@@ -924,31 +1101,41 @@ onUnmounted(() => {
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+  min-width: 0;
+  min-height: 0;
 }
 
 .preview-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   padding: 16px;
   border-bottom: 1px solid #e8e8e8;
+  flex-shrink: 0;
 }
 
 .preview-header h3 {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .preview-actions {
   display: flex;
   gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .preview-content {
   flex: 1;
   position: relative;
   overflow: hidden;
+  min-height: 0;
 }
 
 .preview-placeholder {
@@ -957,6 +1144,8 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   height: 100%;
+  padding: 16px;
+  text-align: center;
   color: #666;
 }
 
@@ -986,9 +1175,75 @@ onUnmounted(() => {
 
 .selected-element-alert {
   margin: 0 16px;
+  flex-shrink: 0;
 }
 
-/* 响应式设计 */
+/* 选中元素信息（原实现误置于媒体查询内，导致桌面端无样式，此处上提为全局） */
+.selected-element-info {
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.element-header {
+  margin-bottom: 8px;
+}
+
+.element-details {
+  margin-top: 8px;
+}
+
+.element-item {
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.element-item:last-child {
+  margin-bottom: 0;
+}
+
+.element-tag {
+  font-family: var(--zw-font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: #007bff;
+}
+
+.element-id {
+  color: #28a745;
+  margin-left: 4px;
+}
+
+.element-class {
+  color: #ffc107;
+  margin-left: 4px;
+}
+
+.element-selector-code {
+  font-family: var(--zw-font-mono);
+  background: #f6f8fa;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 12px;
+  color: #d73a49;
+  border: 1px solid #e1e4e8;
+  overflow-wrap: anywhere;
+}
+
+/* 编辑模式按钮样式 */
+.edit-mode-active {
+  background-color: #52c41a !important;
+  border-color: #52c41a !important;
+  color: white !important;
+}
+
+.edit-mode-active:hover {
+  background-color: #73d13d !important;
+  border-color: #73d13d !important;
+}
+
+/* =========================================================
+   平板及以下：对话与预览改为上下堆叠
+   ========================================================= */
 @media (max-width: 1024px) {
   .main-content {
     flex-direction: column;
@@ -1001,87 +1256,153 @@ onUnmounted(() => {
   }
 }
 
+/* =========================================================
+   手机：单栏切换，彻底消除上下双滚动区
+   ========================================================= */
 @media (max-width: 768px) {
+  #appChatPage {
+    padding: 8px;
+    padding-left: calc(8px + var(--zw-safe-left));
+    padding-right: calc(8px + var(--zw-safe-right));
+  }
+
+  /* 显示面板切换条 */
+  .panel-switch {
+    display: flex;
+    padding: 0 8px 8px;
+  }
+
+  /* 堆叠模式下改为占满剩余高度，由面板切换控制显隐 */
+  .chat-section,
+  .preview-section {
+    flex: 1;
+    height: auto;
+    min-height: 0;
+  }
+
+  /* 非当前面板隐藏：用 display 而非 visibility，避免隐藏面板仍可滚动 */
+  .is-hidden-mobile {
+    display: none;
+  }
+
   .header-bar {
-    padding: 12px 16px;
+    padding: 8px 8px 12px;
+    gap: 8px;
+    /* 顶部栏允许换行，避免按钮溢出 */
+    flex-wrap: wrap;
   }
 
   .app-name {
     font-size: 16px;
   }
 
-  .main-content {
-    padding: 8px;
+  /* 移动端按钮只留图标，文字隐藏，避免横向溢出 */
+  .header-right {
     gap: 8px;
   }
 
-  .message-content {
-    max-width: 85%;
+  .header-right .btn-text,
+  .input-actions .btn-text {
+    display: none;
   }
 
-  /* 选中元素信息样式 */
+  /* 图标按钮保证 44px 触控区域 */
+  .header-right .ant-btn {
+    min-width: var(--zw-touch-min);
+    min-height: var(--zw-touch-min);
+    padding: 0 10px;
+  }
+
+  .main-content {
+    padding: 0;
+    gap: 8px;
+  }
+
+  .messages-container {
+    padding: 12px;
+  }
+
+  /* 窄屏放宽气泡占比，减少换行 */
+  .message-content {
+    max-width: 84%;
+    padding: 10px 12px;
+    font-size: 15px;
+  }
+
+  .ai-message .message-content {
+    padding: 8px 10px;
+  }
+
+  /* 输入区：加大点击区域，并预留发送按钮空间 */
+  .input-container {
+    padding: 10px 8px;
+    padding-bottom: calc(10px + var(--zw-safe-bottom));
+  }
+
+  .input-wrapper .ant-input {
+    padding-right: 56px;
+    /* 移动端输入框字号 >=16px，防止 iOS 聚焦时自动放大页面 */
+    font-size: 16px;
+  }
+
+  .input-actions {
+    bottom: 6px;
+    right: 6px;
+  }
+
+  /* 发送按钮为图标态，保证触控尺寸 */
+  .input-actions .ant-btn {
+    min-width: var(--zw-touch-min);
+    min-height: 36px;
+  }
+
+  .preview-header {
+    padding: 12px;
+    flex-wrap: wrap;
+  }
+
+  .preview-header h3 {
+    font-size: 15px;
+  }
+
   .selected-element-alert {
-    margin: 0 16px;
+    margin: 0 8px;
   }
 
   .selected-element-info {
-    line-height: 1.4;
-  }
-
-  .element-header {
-    margin-bottom: 8px;
-  }
-
-  .element-details {
-    margin-top: 8px;
+    line-height: 1.5;
   }
 
   .element-item {
-    margin-bottom: 4px;
-    font-size: 13px;
-  }
-
-  .element-item:last-child {
-    margin-bottom: 0;
-  }
-
-  .element-tag {
-    font-family: 'Monaco', 'Menlo', monospace;
-    font-size: 14px;
-    font-weight: 600;
-    color: #007bff;
-  }
-
-  .element-id {
-    color: #28a745;
-    margin-left: 4px;
-  }
-
-  .element-class {
-    color: #ffc107;
-    margin-left: 4px;
+    font-size: 12px;
   }
 
   .element-selector-code {
-    font-family: 'Monaco', 'Menlo', monospace;
-    background: #f6f8fa;
-    padding: 2px 4px;
-    border-radius: 3px;
-    font-size: 12px;
-    color: #d73a49;
-    border: 1px solid #e1e4e8;
+    font-size: 11px;
+    display: inline-block;
+    max-width: 100%;
+  }
+}
+
+/* =========================================================
+   小屏手机（≤480px）：进一步压缩留白
+   ========================================================= */
+@media (max-width: 480px) {
+  .app-name {
+    font-size: 15px;
   }
 
-  /* 编辑模式按钮样式 */
-  .edit-mode-active {
-    background-color: #52c41a !important;
-    border-color: #52c41a !important;
-    color: white !important;
+  .message-content {
+    max-width: 88%;
+    font-size: 14.5px;
   }
 
-  .edit-mode-active:hover {
-    background-color: #73d13d !important;
-    border-color: #73d13d !important;
+  .messages-container {
+    padding: 10px 8px;
+  }
+
+  .time-divider {
+    margin: 12px 0 8px;
   }
 }
 </style>

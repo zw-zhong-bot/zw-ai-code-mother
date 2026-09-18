@@ -34,4 +34,17 @@
   color: #666;
   font-size: 14px;
 }
+
+@media (max-width: 768px) {
+  .footer {
+    padding: 16px 12px;
+    margin-top: 24px;
+    /* 适配全面屏底部手势条 */
+    padding-bottom: calc(16px + var(--zw-safe-bottom));
+  }
+
+  .copyright {
+    font-size: 13px;
+  }
+}
 </style>
